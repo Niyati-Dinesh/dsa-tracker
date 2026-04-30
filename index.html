@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSA Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Hamburger for mobile -->
+  <button class="hamburger" id="hamburgerBtn" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- Overlay for mobile sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🧠 DSA Tracker</span>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" data-view="dashboard" class="nav-link active">📊 Dashboard</a></li>
+      <li><a href="#" data-view="dayplan" class="nav-link">📅 Day Plan</a></li>
+      <li><a href="#" data-view="problems" class="nav-link">📚 Problems</a></li>
+      <li><a href="#" data-view="notes" class="nav-link">📝 Notes</a></li>
+      <li><a href="#" data-view="codeforces" class="nav-link">⚡ Codeforces</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="progress-summary" id="sidebarProgress"></div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content" id="mainContent">
+    <div id="viewDashboard" class="view active"></div>
+    <div id="viewDayplan" class="view"></div>
+    <div id="viewProblems" class="view"></div>
+    <div id="viewNotes" class="view"></div>
+    <div id="viewCodeforces" class="view"></div>
+  </main>
+
+  <!-- Problem Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="problemModal">
+      <div class="modal-header">
+        <h2 id="modalTitle"></h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
