@@ -1,0 +1,1692 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DSA Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Sora:wght@300;400;500&family=Geist:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+
+  <body>
+    <header id="mob-header">
+      <div class="mob-logo">dsa.</div>
+      <div class="mob-progress">
+        <span id="mob-pct">0%</span>
+        <div class="mob-bar">
+          <div class="mob-bar-fill" id="mob-bar-fill"></div>
+        </div>
+      </div>
+    </header>
+
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div
+          style="
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+          "
+        >
+          <div class="logo">dsa.</div>
+          <div
+            class="sync-badge"
+            id="sync-badge"
+            onclick="openSyncCode()"
+            title="Click to manage sync"
+          >
+            <span class="sync-dot"></span>
+            <span id="sync-label">local</span>
+          </div>
+        </div>
+        <div class="logo-sub">pattern tracker</div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <div class="nav-section" style="padding-top: 0">Overview</div>
+        <div
+          class="nav-topic"
+          onclick="showView('dashboard')"
+          id="nav-dashboard"
+        >
+          <span class="nav-icon">◉</span> Dashboard
+        </div>
+        <div class="nav-topic" onclick="showView('dayplan')" id="nav-dayplan">
+          <span class="nav-icon">▦</span> Day Plan
+        </div>
+        <div class="nav-topic" onclick="showView('patterns')" id="nav-patterns">
+          <span class="nav-icon">◎</span> Patterns
+        </div>
+        <div class="nav-topic" onclick="showView('notes')" id="nav-notes">
+          <span class="nav-icon">◧</span> Notes
+        </div>
+
+        <!-- DSA Topics Toggle -->
+        <div
+          class="nav-section-header"
+          onclick="toggleNavGroup('dsa-group', this)"
+          style="margin-top: 12px"
+        >
+          <div class="nav-section-title">DSA Topics</div>
+          <div class="nav-arrow">▼</div>
+        </div>
+        <div id="dsa-group" class="nav-group">
+          <div id="topic-nav"></div>
+        </div>
+
+        <!-- Platforms Toggle -->
+        <div
+          class="nav-section-header"
+          onclick="toggleNavGroup('cp-group', this)"
+          style="margin-top: 12px"
+        >
+          <div class="nav-section-title">Platforms</div>
+          <div class="nav-arrow">▼</div>
+        </div>
+        <div id="cp-group" class="nav-group">
+          <div
+            class="nav-topic nav-topic-lc"
+            onclick="showView('leetcode')"
+            id="nav-leetcode"
+          >
+            <span class="nav-icon">❖</span><span>LeetCode</span>
+          </div>
+          <div id="lc-topic-nav"></div>
+
+          <div
+            class="nav-topic nav-topic-cf"
+            onclick="showView('codeforces')"
+            id="nav-codeforces"
+          >
+            <span class="nav-icon">⬡</span><span>Codeforces</span>
+          </div>
+          <div id="cf-topic-nav"></div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="progress-label">
+          <span>overall progress</span><span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <!-- Dashboard -->
+      <div class="view active" id="view-dashboard">
+        <div class="view-inner">
+          <div class="dash-greeting">
+            <h1>good to have you back.</h1>
+            <p>
+              DSA pattern mastery tracker — C++ · FAANG + competitive
+              programming
+            </p>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">solved</div>
+              <div class="stat-num" id="stat-solved">0</div>
+              <div class="stat-total" id="stat-total-problems">of 0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">streak</div>
+              <div class="stat-num" id="stat-streak">0</div>
+              <div class="stat-total">days</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">patterns</div>
+              <div class="stat-num" id="stat-patterns">0</div>
+              <div class="stat-total" id="stat-patterns-total">of 0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">current day</div>
+              <div class="stat-num" id="stat-day">1</div>
+              <div class="stat-total">of plan</div>
+            </div>
+          </div>
+
+          <div class="dash-actions">
+            <button
+              class="timer-btn"
+              onclick="openTimer(null)"
+              style="font-size: 11px; padding: 6px 12px"
+            >
+              ⏱ start timer
+            </button>
+            <button class="export-btn" onclick="exportProgress()">
+              ↓ export progress
+            </button>
+          </div>
+
+          <div id="review-block-container"></div>
+
+          <div class="dash-section-title">upcoming days</div>
+          <div class="day-plan-block" id="dash-days"></div>
+        </div>
+      </div>
+
+      <!-- Topic View -->
+      <div class="view" id="view-topic">
+        <div class="view-inner">
+          <div class="topic-header" id="topic-header"></div>
+          <div id="topic-content"></div>
+        </div>
+      </div>
+
+      <!-- Day Plan -->
+      <div class="view" id="view-dayplan">
+        <div class="view-inner">
+          <div class="dayplan-title">day-by-day plan</div>
+          <div class="dayplan-sub">
+            Each day goes deep on one pattern. Tick as you go.
+          </div>
+          <div id="dayplan-content"></div>
+        </div>
+      </div>
+
+      <!-- Patterns Strength -->
+      <div class="view" id="view-patterns">
+        <div class="view-inner">
+          <div class="dayplan-title">pattern strength</div>
+          <div class="dayplan-sub" style="margin-bottom: 24px">
+            Track how deeply you've covered each pattern. Full bar = all
+            problems solved.
+          </div>
+          <div class="pattern-grid" id="pattern-grid"></div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="view" id="view-notes">
+        <div class="view-inner">
+          <div class="notes-header">
+            <div class="notes-title">your notes</div>
+            <div class="notes-sub">
+              Capture pattern insights, trigger phrases, aha moments.
+            </div>
+          </div>
+          <div id="notes-content"></div>
+          <button class="notes-add-btn" onclick="addNote()">+ add note</button>
+        </div>
+      </div>
+
+      <!-- Codeforces -->
+      <div class="view" id="view-codeforces">
+        <div class="view-inner" id="cf-view-inner"></div>
+      </div>
+
+      <!-- LeetCode -->
+      <div class="view" id="view-leetcode">
+        <div class="view-inner" id="lc-view-inner"></div>
+      </div>
+    </main>
+
+    <!-- Mobile tabs -->
+    <nav id="mob-tabs">
+      <button
+        class="mob-tab active"
+        id="mobtab-dashboard"
+        onclick="mobTab('dashboard')"
+      >
+        <span class="mob-tab-icon">◉</span
+        ><span class="mob-tab-label">Home</span>
+      </button>
+      <button class="mob-tab" id="mobtab-dayplan" onclick="mobTab('dayplan')">
+        <span class="mob-tab-icon">▦</span
+        ><span class="mob-tab-label">Plan</span>
+      </button>
+      <button class="mob-tab" id="mobtab-patterns" onclick="mobTab('patterns')">
+        <span class="mob-tab-icon">◎</span
+        ><span class="mob-tab-label">Patterns</span>
+      </button>
+      <button
+        class="mob-tab"
+        id="mobtab-codeforces"
+        onclick="mobTab('codeforces')"
+      >
+        <span class="mob-tab-icon">⬡</span
+        ><span class="mob-tab-label">CF/LC</span>
+      </button>
+      <button
+        class="mob-tab"
+        id="mobtab-topics"
+        onclick="toggleMobTopicsMenu()"
+      >
+        <span class="mob-tab-icon">⌥</span
+        ><span class="mob-tab-label">Topics</span>
+      </button>
+    </nav>
+
+    <div id="mob-topics-drawer" class="mob-drawer">
+      <div class="mob-drawer-handle"></div>
+      <div class="mob-drawer-title">Topics</div>
+      <div id="mob-drawer-content"></div>
+    </div>
+    <div id="mob-drawer-overlay" onclick="closeMobDrawer()"></div>
+
+    <!-- Problem Modal -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" id="modal">
+        <button class="modal-close" onclick="closeModalDirect()">✕</button>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-meta" id="modal-meta"></div>
+        <div class="modal-section" id="modal-hint-section"></div>
+        <div class="modal-section">
+          <div class="modal-section-label">solve it</div>
+          <div id="modal-link-container"></div>
+          <button
+            class="timer-btn"
+            style="margin-top: 8px; font-size: 11px; padding: 5px 10px"
+            onclick="openTimerForCurrent()"
+          >
+            ⏱ start 25min timer
+          </button>
+        </div>
+        <div
+          style="
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+          "
+        >
+          <div class="modal-section-label">mark complete</div>
+          <div
+            id="modal-check-row"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-top: 6px;
+            "
+          ></div>
+        </div>
+        <div class="modal-note">
+          <div class="modal-section-label">my note on this problem</div>
+          <textarea
+            class="modal-note-area"
+            id="modal-note-area"
+            placeholder="Write your approach, key insight, or anything worth remembering..."
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timer Modal -->
+    <div
+      class="timer-overlay"
+      id="timer-overlay"
+      onclick="closeTimerOnBg(event)"
+    >
+      <div class="timer-modal">
+        <button class="timer-close" onclick="closeTimer()">✕</button>
+        <div class="timer-label" id="timer-problem-label">focus session</div>
+        <div class="timer-display" id="timer-display">25:00</div>
+        <div class="timer-presets">
+          <span class="timer-preset active" onclick="setTimerPreset(25, this)"
+            >25 min</span
+          >
+          <span class="timer-preset" onclick="setTimerPreset(20, this)"
+            >20 min</span
+          >
+          <span class="timer-preset" onclick="setTimerPreset(45, this)"
+            >45 min</span
+          >
+        </div>
+        <div class="timer-controls">
+          <button
+            class="timer-btn primary"
+            id="timer-start-btn"
+            onclick="toggleTimer()"
+          >
+            start
+          </button>
+          <button class="timer-btn" onclick="resetTimer()">reset</button>
+        </div>
+        <div
+          style="
+            margin-top: 16px;
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--mono);
+          "
+        >
+          attempt the problem without hints first
+        </div>
+      </div>
+    </div>
+
+    <!-- Post-solve capture -->
+    <div class="solve-capture" id="solve-capture">
+      <div class="solve-capture-modal">
+        <div class="sc-title">nice work.</div>
+        <div class="sc-sub" id="sc-problem-name">
+          what was the key pattern trigger you noticed?
+        </div>
+        <textarea
+          class="sc-input"
+          id="sc-input"
+          placeholder="e.g. 'saw contiguous + longest → tried sliding window, confirmed when I spotted the shrink condition'"
+        ></textarea>
+        <div class="sc-row">
+          <button class="sc-btn" onclick="closeSolveCapture(false)">
+            skip
+          </button>
+          <button class="sc-btn save" onclick="closeSolveCapture(true)">
+            save insight
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync code modal -->
+    <div
+      class="timer-overlay"
+      id="synccode-overlay"
+      onclick="closeSyncCodeOnBg(event)"
+    >
+      <div class="synccode-modal">
+        <button class="timer-close" onclick="closeSyncCode()">✕</button>
+        <div class="synccode-title">cross-device sync</div>
+        <div class="synccode-sub">
+          To sync progress across devices without a login, set up Firebase (see
+          <code>sync.js</code> for instructions). Once set up, share your sync
+          code to link devices.
+        </div>
+        <div id="synccode-body"></div>
+        <div
+          style="
+            margin-top: 16px;
+            border-top: 1px solid var(--line);
+            padding-top: 14px;
+          "
+        >
+          <div class="modal-section-label" style="margin-bottom: 8px">
+            manual backup
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button class="export-btn" onclick="exportProgress()">
+              ↓ export JSON
+            </button>
+            <label class="export-btn" style="cursor: pointer"
+              >↑ import JSON<input
+                type="file"
+                accept=".json"
+                style="display: none"
+                onchange="importProgress(event)"
+            /></label>
+          </div>
+          <div
+            style="
+              font-size: 11px;
+              color: var(--muted);
+              margin-top: 8px;
+              font-family: var(--mono);
+            "
+          >
+            export on one device, import on another — simple cross-device sync
+            without Firebase
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="sync.js"></script>
+    <script>
+      /* ================================================================
+         STORAGE
+         ================================================================ */
+      const DB = {
+        get: (k) => {
+          try {
+            return JSON.parse(localStorage.getItem("dsa_" + k));
+          } catch (e) {
+            return null;
+          }
+        },
+        set: (k, v) => {
+          try {
+            localStorage.setItem("dsa_" + k, JSON.stringify(v));
+          } catch (e) {}
+        },
+      };
+      const getCompleted = () => DB.get("completed") || {};
+      const setCompleted = (o) => {
+        DB.set("completed", o);
+        syncAfterChange();
+      };
+      const getNotes = () => DB.get("notes") || {};
+      const setNotes = (o) => {
+        DB.set("notes", o);
+        syncAfterChange();
+      };
+      const getGlobalNotes = () => DB.get("global_notes") || [];
+      const setGlobalNotes = (a) => {
+        DB.set("global_notes", a);
+        syncAfterChange();
+      };
+      const getPatternLogs = () => DB.get("pattern_logs") || {};
+      const setPatternLogs = (o) => {
+        DB.set("pattern_logs", o);
+        syncAfterChange();
+      };
+
+      /* ================================================================
+         DATA HELPERS
+         ================================================================ */
+      function getAllProblems() {
+        const all = [];
+        DSA_DATA.topics.forEach((t) =>
+          t.subtopics.forEach((st) =>
+            st.problems.forEach((p) =>
+              all.push({
+                ...p,
+                topicId: t.id,
+                topicTitle: t.title,
+                subtopicTitle: st.title,
+              }),
+            ),
+          ),
+        );
+        return all;
+      }
+      function getAllCFProblems() {
+        const all = [];
+        if (!DSA_DATA.codeforces) return all;
+        DSA_DATA.codeforces.topics.forEach((t) =>
+          t.subtopics.forEach((st) =>
+            st.problems.forEach((p) =>
+              all.push({
+                ...p,
+                cfTopicId: t.id,
+                cfTopicTitle: t.title,
+                subtopicTitle: st.title,
+              }),
+            ),
+          ),
+        );
+        return all;
+      }
+      function getAllLCProblems() {
+        const all = [];
+        if (!DSA_DATA.leetcode) return all;
+        DSA_DATA.leetcode.topics.forEach((t) =>
+          t.subtopics.forEach((st) =>
+            st.problems.forEach((p) =>
+              all.push({
+                ...p,
+                lcTopicId: t.id,
+                lcTopicTitle: t.title,
+                subtopicTitle: st.title,
+              }),
+            ),
+          ),
+        );
+        return all;
+      }
+
+      function getCFProblemById(id) {
+        return getAllCFProblems().find((p) => p.id === id) || null;
+      }
+      function getLCProblemById(id) {
+        return getAllLCProblems().find((p) => p.id === id) || null;
+      }
+      function getTotalProblems() {
+        return (
+          getAllProblems().length +
+          getAllCFProblems().length +
+          getAllLCProblems().length
+        );
+      }
+      function getSolvedCount() {
+        return Object.values(getCompleted()).filter(Boolean).length;
+      }
+
+      /* ================================================================
+         SYNC STATUS UI
+         ================================================================ */
+      onSyncStatusChange((s) => {
+        const badge = document.getElementById("sync-badge");
+        const label = document.getElementById("sync-label");
+        if (!badge) return;
+        badge.className = "sync-badge " + s;
+        label.textContent = s === "offline" ? "local" : s;
+      });
+
+      /* ================================================================
+         SIDEBAR NAV
+         ================================================================ */
+      function toggleNavGroup(id, el) {
+        document.getElementById(id).classList.toggle("collapsed");
+        el.classList.toggle("collapsed");
+      }
+
+      function buildNav() {
+        const dsaNav = document.getElementById("topic-nav");
+        dsaNav.innerHTML = "";
+        DSA_DATA.topics.forEach((t) => {
+          const el = document.createElement("div");
+          el.className = "nav-topic";
+          el.id = "nav-topic-" + t.id;
+          el.innerHTML = `<span class="nav-icon">${t.icon}</span><span>${t.title}</span>`;
+          el.onclick = () => showTopic(t.id);
+          dsaNav.appendChild(el);
+          t.subtopics.forEach((st) => {
+            const sub = document.createElement("div");
+            sub.className = "nav-sub";
+            sub.id = "nav-sub-" + st.id;
+            sub.textContent = st.title;
+            sub.onclick = (e) => {
+              e.stopPropagation();
+              showTopic(t.id, st.id);
+            };
+            dsaNav.appendChild(sub);
+          });
+        });
+
+        const lcNav = document.getElementById("lc-topic-nav");
+        lcNav.innerHTML = "";
+        if (DSA_DATA.leetcode) {
+          DSA_DATA.leetcode.topics.forEach((t) => {
+            const sub = document.createElement("div");
+            sub.className = "nav-sub";
+            sub.id = "nav-lcsub-" + t.id;
+            sub.textContent = "↳ " + t.title;
+            sub.onclick = (e) => {
+              e.stopPropagation();
+              showLCTopic(t.id);
+            };
+            lcNav.appendChild(sub);
+          });
+        }
+
+        const cfNav = document.getElementById("cf-topic-nav");
+        cfNav.innerHTML = "";
+        if (DSA_DATA.codeforces) {
+          DSA_DATA.codeforces.topics.forEach((t) => {
+            const sub = document.createElement("div");
+            sub.className = "nav-sub";
+            sub.id = "nav-cfsub-" + t.id;
+            sub.textContent = "↳ " + t.title;
+            sub.onclick = (e) => {
+              e.stopPropagation();
+              showCFTopic(t.id);
+            };
+            cfNav.appendChild(sub);
+          });
+        }
+        buildMobDrawerContent();
+      }
+
+      function buildMobDrawerContent() {
+        const c = document.getElementById("mob-drawer-content");
+        if (!c) return;
+        c.innerHTML = "";
+
+        c.innerHTML += `<div class="mob-drawer-section">DSA Topics</div>`;
+        DSA_DATA.topics.forEach((t) => {
+          const el = document.createElement("div");
+          el.className = "mob-drawer-item";
+          el.innerHTML = `<span class="mob-drawer-icon">${t.icon}</span>${t.title}`;
+          el.onclick = () => {
+            closeMobDrawer();
+            showTopic(t.id);
+          };
+          c.appendChild(el);
+        });
+
+        c.innerHTML += `<div class="mob-drawer-section" style="color:#e8a838; margin-top:8px;">LeetCode</div>`;
+        c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('leetcode')"><span class="mob-drawer-icon" style="color:#e8a838">❖</span>Arena Dashboard</div>`;
+
+        c.innerHTML += `<div class="mob-drawer-section" style="color:#6a7acc; margin-top:8px;">Codeforces</div>`;
+        c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('codeforces')"><span class="mob-drawer-icon" style="color:#6a7acc">⬡</span>Arena Dashboard</div>`;
+      }
+
+      /* ================================================================
+         VIEW ROUTING
+         ================================================================ */
+      function showView(name) {
+        document
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-topic, .nav-sub")
+          .forEach((n) => n.classList.remove("active"));
+        document
+          .querySelectorAll(".mob-tab")
+          .forEach((b) => b.classList.remove("active"));
+
+        const view = document.getElementById("view-" + name);
+        if (view) view.classList.add("active");
+
+        const navEl = document.getElementById("nav-" + name);
+        if (navEl) navEl.classList.add("active");
+
+        const mobEl = document.getElementById("mobtab-" + name);
+        if (mobEl) mobEl.classList.add("active");
+
+        document.getElementById("main").scrollTop = 0;
+
+        if (name === "dashboard") buildDashboard();
+        if (name === "dayplan") buildDayPlan();
+        if (name === "notes") buildNotes();
+        if (name === "patterns") buildPatterns();
+        if (name === "codeforces") buildPlatformDashboard("codeforces");
+        if (name === "leetcode") buildPlatformDashboard("leetcode");
+      }
+
+      function showTopic(topicId, scrollToSubtopic) {
+        document
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-topic, .nav-sub")
+          .forEach((n) => n.classList.remove("active"));
+        document
+          .querySelectorAll(".mob-tab")
+          .forEach((b) => b.classList.remove("active"));
+
+        document.getElementById("view-topic").classList.add("active");
+        const navEl = document.getElementById("nav-topic-" + topicId);
+        if (navEl) navEl.classList.add("active");
+
+        buildTopicView(topicId);
+        document.getElementById("main").scrollTop = 0;
+        if (scrollToSubtopic) {
+          setTimeout(() => {
+            const el = document.getElementById("subtopic-" + scrollToSubtopic);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 120);
+        }
+      }
+
+      function showCFTopic(topicId) {
+        document
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-topic, .nav-sub")
+          .forEach((n) => n.classList.remove("active"));
+
+        document.getElementById("view-codeforces").classList.add("active");
+        const navEl = document.getElementById("nav-cfsub-" + topicId);
+        if (navEl) navEl.classList.add("active");
+
+        buildPlatformTopicView("codeforces", topicId);
+        document.getElementById("main").scrollTop = 0;
+      }
+
+      function showLCTopic(topicId) {
+        document
+          .querySelectorAll(".view")
+          .forEach((v) => v.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-topic, .nav-sub")
+          .forEach((n) => n.classList.remove("active"));
+
+        document.getElementById("view-leetcode").classList.add("active");
+        const navEl = document.getElementById("nav-lcsub-" + topicId);
+        if (navEl) navEl.classList.add("active");
+
+        buildPlatformTopicView("leetcode", topicId);
+        document.getElementById("main").scrollTop = 0;
+      }
+
+      function mobTab(name) {
+        showView(name);
+      }
+
+      function toggleMobTopicsMenu() {
+        document.getElementById("mob-topics-drawer").classList.toggle("open");
+        document.getElementById("mob-drawer-overlay").classList.toggle("open");
+      }
+      function closeMobDrawer() {
+        document.getElementById("mob-topics-drawer").classList.remove("open");
+        document.getElementById("mob-drawer-overlay").classList.remove("open");
+      }
+
+      /* ================================================================
+         PROGRESS
+         ================================================================ */
+      function updateProgress() {
+        const solved = getSolvedCount(),
+          total = getTotalProblems();
+        const pct = total ? Math.round((solved / total) * 100) : 0;
+        document.getElementById("progress-pct").textContent = pct + "%";
+        document.getElementById("progress-fill").style.width = pct + "%";
+        const mobPct = document.getElementById("mob-pct");
+        const mobFill = document.getElementById("mob-bar-fill");
+        if (mobPct) mobPct.textContent = pct + "%";
+        if (mobFill) mobFill.style.width = pct + "%";
+      }
+
+      function buildReviewBlock() {
+        const container = document.getElementById("review-block-container");
+        const c = getCompleted();
+        const solveTimes = DB.get("solve_times") || {};
+        const now = Date.now();
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+        const due = getAllProblems()
+          .filter((p) => {
+            if (!c[p.id]) return false;
+            const t = solveTimes[p.id];
+            return t && now - t >= SEVEN_DAYS;
+          })
+          .slice(0, 6);
+
+        if (!due.length) {
+          container.innerHTML = "";
+          return;
+        }
+
+        const block = document.createElement("div");
+        block.className = "review-block";
+        block.innerHTML = `<div class="review-block-title">⟳ review — solved 7+ days ago</div>`;
+        due.forEach((p) => {
+          const daysAgo = Math.floor(
+            (now - solveTimes[p.id]) / (24 * 60 * 60 * 1000),
+          );
+          const pill = document.createElement("span");
+          pill.className = "review-pill";
+          pill.innerHTML = `${p.title} <span class="days-ago">${daysAgo}d ago</span>`;
+          pill.onclick = () => openModal(p.id);
+          block.appendChild(pill);
+        });
+        container.innerHTML = "";
+        container.appendChild(block);
+      }
+
+      /* ================================================================
+         DASHBOARD
+         ================================================================ */
+      function buildDashboard() {
+        const solved = getSolvedCount(),
+          total = getTotalProblems();
+        const allProbs = getAllProblems();
+        const c = getCompleted();
+
+        document.getElementById("stat-solved").textContent = solved;
+        document.getElementById("stat-total-problems").textContent =
+          "of " + total;
+
+        const subtopicCount = DSA_DATA.topics.reduce(
+          (a, t) => a + t.subtopics.length,
+          0,
+        );
+        const completedSubs = DSA_DATA.topics.reduce(
+          (a, t) =>
+            a +
+            t.subtopics.filter((st) => st.problems.every((p) => c[p.id]))
+              .length,
+          0,
+        );
+        document.getElementById("stat-patterns").textContent = completedSubs;
+        document.getElementById("stat-patterns-total").textContent =
+          "of " + subtopicCount;
+
+        let maxDay = 1;
+        allProbs.forEach((p) => {
+          if (c[p.id] && p.day > maxDay) maxDay = p.day;
+        });
+        document.getElementById("stat-day").textContent = maxDay;
+
+        const dates = DB.get("solve_dates") || {};
+        let streak = 0;
+        let d = new Date();
+        while (dates[d.toDateString()]) {
+          streak++;
+          d.setDate(d.getDate() - 1);
+        }
+        document.getElementById("stat-streak").textContent = streak;
+
+        buildReviewBlock();
+
+        const byDay = {};
+        allProbs.forEach((p) => {
+          (byDay[p.day] = byDay[p.day] || []).push(p);
+        });
+        const days = Object.keys(byDay)
+          .map(Number)
+          .sort((a, b) => a - b);
+        const startIdx = Math.max(0, days.indexOf(maxDay));
+        const showDays = days.slice(startIdx, startIdx + 6);
+
+        const container = document.getElementById("dash-days");
+        container.innerHTML = "";
+        showDays.forEach((day) => {
+          const probs = byDay[day];
+          const row = document.createElement("div");
+          row.className = "day-row";
+          row.innerHTML = `
+            <div class="day-label">
+              <div class="day-num">${String(day).padStart(2, "0")}</div>
+              <div class="day-word">day</div>
+            </div>
+            <div class="day-problems" id="dash-dayprobs-${day}"></div>`;
+          container.appendChild(row);
+          renderDashDayProblems(day, probs);
+        });
+
+        updateProgress();
+      }
+
+      function renderDashDayProblems(day, probs) {
+        const c = getCompleted();
+        const container = document.getElementById("dash-dayprobs-" + day);
+        if (!container) return;
+        container.innerHTML = "";
+        probs.forEach((p) => {
+          const done = !!c[p.id];
+          const row = document.createElement("div");
+          row.className = "day-problem-row";
+          row.innerHTML = `
+            <div class="day-prob-check ${done ? "checked" : ""}" id="dashchk-${p.id}" onclick="toggleDashProblem('${p.id}', ${day})">
+              <span class="day-prob-check-icon">✓</span>
+            </div>
+            <span class="day-prob-name ${done ? "done" : ""}" id="dashname-${p.id}" onclick="openModal('${p.id}')">${p.title}</span>
+            <span class="day-prob-diff diff-${p.difficulty}">${p.difficulty}</span>
+            <button class="day-prob-timer" onclick="openTimer('${p.id}')">▷</button>`;
+          container.appendChild(row);
+        });
+      }
+
+      function toggleDashProblem(probId, day) {
+        const c = getCompleted();
+        c[probId] = !c[probId];
+        setCompleted(c);
+        recordSolveTime(probId, c[probId]);
+        const chk = document.getElementById("dashchk-" + probId);
+        const name = document.getElementById("dashname-" + probId);
+        if (chk) chk.classList.toggle("checked", !!c[probId]);
+        if (name) name.classList.toggle("done", !!c[probId]);
+        if (c[probId]) showSolveCapture(probId);
+        updateProgress();
+        buildDashboard();
+      }
+
+      function recordSolveTime(probId, solved) {
+        if (!solved) return;
+        const times = DB.get("solve_times") || {};
+        times[probId] = Date.now();
+        DB.set("solve_times", times);
+        const dates = DB.get("solve_dates") || {};
+        dates[new Date().toDateString()] = true;
+        DB.set("solve_dates", dates);
+      }
+
+      /* ================================================================
+         TOPIC VIEW
+         ================================================================ */
+      function buildTopicView(topicId) {
+        const topic = DSA_DATA.topics.find((t) => t.id === topicId);
+        if (!topic) return;
+        const c = getCompleted();
+        const total = topic.subtopics.reduce(
+          (a, s) => a + s.problems.length,
+          0,
+        );
+        const solved = topic.subtopics.reduce(
+          (a, s) => a + s.problems.filter((p) => c[p.id]).length,
+          0,
+        );
+
+        document.getElementById("topic-header").innerHTML = `
+          <div class="breadcrumb">
+            <span onclick="showView('dashboard')">home</span><span>›</span><span>${topic.title}</span>
+          </div>
+          <div class="topic-title">${topic.title}</div>
+          <div class="topic-meta">${solved} / ${total} solved · ${topic.subtopics.length} patterns</div>`;
+
+        const content = document.getElementById("topic-content");
+        content.innerHTML = "";
+        topic.subtopics.forEach((st) => {
+          const stSolved = st.problems.filter((p) => c[p.id]).length;
+          const block = document.createElement("div");
+          block.className = "subtopic-block";
+          block.id = "subtopic-" + st.id;
+          block.innerHTML = `
+            <div class="subtopic-title-row" onclick="toggleSubtopic('${st.id}')">
+              <div class="subtopic-name">${st.title}</div>
+              <div class="subtopic-count">${stSolved}/${st.problems.length}</div>
+              <div class="subtopic-toggle" id="stoggle-${st.id}">collapse ↑</div>
+            </div>
+            <div class="subtopic-desc">${st.description}</div>
+            <div class="subtopic-body" id="stbody-${st.id}">
+              <div class="problem-table">${st.problems.map((p) => buildProblemRow(p)).join("")}</div>
+            </div>`;
+          content.appendChild(block);
+        });
+      }
+
+      function toggleSubtopic(stId) {
+        const body = document.getElementById("stbody-" + stId);
+        const tog = document.getElementById("stoggle-" + stId);
+        body.classList.toggle("collapsed");
+        tog.textContent = body.classList.contains("collapsed")
+          ? "expand ↓"
+          : "collapse ↑";
+      }
+
+      function buildProblemRow(p) {
+        const done = getCompleted()[p.id] ? "completed" : "";
+        return `
+          <div class="problem-row ${done}" id="prow-${p.id}">
+            <div class="p-check" onclick="toggleProblem('${p.id}')"><span class="p-check-icon">✓</span></div>
+            <div class="p-name" onclick="openModal('${p.id}')">${p.title}</div>
+            <div class="p-diff diff-${p.difficulty}">${p.difficulty}</div>
+            <div class="p-platform plat-${p.platform}" onclick="window.open('${p.link}','_blank')">${p.platform === "leetcode" ? "LC" : "CF"}</div>
+            <button class="p-hint-btn" onclick="toggleHint('${p.id}')">?</button>
+          </div>
+          <div class="hint-row" id="hint-${p.id}">
+            <div class="hint-trigger-toggle" id="htoggle-${p.id}" onclick="toggleHintInner('${p.id}')">
+              <span class="arrow">▶</span> pattern trigger &amp; hint
+            </div>
+            <div class="hint-trigger-content" id="hcontent-${p.id}">
+              <div class="hint-trigger-tag">${p.trigger}</div>
+              <div class="hint-body-text">${p.hint}</div>
+            </div>
+          </div>`;
+      }
+
+      function toggleHint(id) {
+        document.getElementById("hint-" + id)?.classList.toggle("open");
+      }
+      function toggleHintInner(id) {
+        document.getElementById("htoggle-" + id)?.classList.toggle("open");
+        document.getElementById("hcontent-" + id)?.classList.toggle("open");
+      }
+
+      function toggleProblem(probId) {
+        const c = getCompleted();
+        c[probId] = !c[probId];
+        setCompleted(c);
+        recordSolveTime(probId, c[probId]);
+        const row = document.getElementById("prow-" + probId);
+        if (row) row.classList.toggle("completed", !!c[probId]);
+        if (c[probId]) showSolveCapture(probId);
+        updateProgress();
+      }
+
+      /* ================================================================
+         DAY PLAN & PATTERNS (unchanged logic)
+         ================================================================ */
+      function buildDayPlan() {
+        const allProbs = getAllProblems();
+        const c = getCompleted();
+        const byDay = {};
+        allProbs.forEach((p) => {
+          (byDay[p.day] = byDay[p.day] || []).push(p);
+        });
+        const days = Object.keys(byDay)
+          .map(Number)
+          .sort((a, b) => a - b);
+        const container = document.getElementById("dayplan-content");
+        container.innerHTML = "";
+        days.forEach((day) => {
+          const probs = byDay[day];
+          const doneCnt = probs.filter((p) => c[p.id]).length;
+          const dotClass =
+            doneCnt === probs.length
+              ? "all-done"
+              : doneCnt > 0
+                ? "has-done"
+                : "";
+          const block = document.createElement("div");
+          block.className = "dp-day-block";
+          block.innerHTML = `
+            <div class="dp-day-dot ${dotClass}" id="dot-day-${day}"></div>
+            <div class="dp-day-content">
+              <div class="dp-day-num">day ${String(day).padStart(2, "0")}</div>
+              <div class="dp-day-topic">${probs[0].subtopicTitle}</div>
+              ${probs
+                .map(
+                  (p) => `
+                <div class="dp-problem-item ${c[p.id] ? "done" : ""}" id="dpitem-${p.id}">
+                  <div class="dp-pcheck" onclick="toggleDpProblem('${p.id}',${day})"><span class="dp-pcheck-icon">✓</span></div>
+                  <span class="dp-pname" onclick="openModal('${p.id}')">${p.title}</span>
+                  <span class="dp-pdiff diff-${p.difficulty}">${p.difficulty}</span>
+                </div>`,
+                )
+                .join("")}
+            </div>`;
+          container.appendChild(block);
+        });
+      }
+
+      function toggleDpProblem(probId, day) {
+        const c = getCompleted();
+        c[probId] = !c[probId];
+        setCompleted(c);
+        recordSolveTime(probId, c[probId]);
+        const item = document.getElementById("dpitem-" + probId);
+        if (item) item.classList.toggle("done", !!c[probId]);
+        if (c[probId]) showSolveCapture(probId);
+        updateProgress();
+        const probs = getAllProblems().filter((p) => p.day === day);
+        const doneCnt = probs.filter((p) => c[p.id]).length;
+        const dot = document.getElementById("dot-day-" + day);
+        if (dot)
+          dot.className =
+            "dp-day-dot " +
+            (doneCnt === probs.length
+              ? "all-done"
+              : doneCnt > 0
+                ? "has-done"
+                : "");
+      }
+
+      function buildPatterns() {
+        const grid = document.getElementById("pattern-grid");
+        grid.innerHTML = "";
+        const c = getCompleted();
+        DSA_DATA.topics.forEach((t) => {
+          t.subtopics.forEach((st) => {
+            const solved = st.problems.filter((p) => c[p.id]).length;
+            const total = st.problems.length;
+            const pct = total ? Math.round((solved / total) * 100) : 0;
+            const card = document.createElement("div");
+            card.className = "pattern-card";
+            card.innerHTML = `
+              <div class="pattern-card-name">${st.title}</div>
+              <div class="pattern-card-topic">${t.title}</div>
+              <div class="pattern-bar-bg">
+                <div class="pattern-bar-fill ${pct === 100 ? "full" : ""}" style="width:${pct}%"></div>
+              </div>
+              <div class="pattern-card-pct">${solved} / ${total} · ${pct}%</div>`;
+            card.onclick = () => showTopic(t.id, st.id);
+            grid.appendChild(card);
+          });
+        });
+      }
+
+      /* ================================================================
+         NOTES
+         ================================================================ */
+      function buildNotes() {
+        const notes = getGlobalNotes();
+        const container = document.getElementById("notes-content");
+        container.innerHTML = "";
+        notes.forEach((note, i) => {
+          const d = new Date(note.created || Date.now()).toLocaleDateString(
+            "en-IN",
+            { day: "numeric", month: "short", year: "numeric" },
+          );
+          const block = document.createElement("div");
+          block.className = "note-block";
+          block.innerHTML = `
+            <div class="note-block-header">
+              <input class="note-title-input" value="${(note.title || "").replace(/"/g, "&quot;")}" placeholder="note title…" oninput="saveGlobalNoteTitle(${i},this.value)" />
+              <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                <span class="note-block-meta">${d}</span>
+                <button onclick="deleteNote(${i})" class="note-delete-btn">✕</button>
+              </div>
+            </div>
+            <textarea class="note-area" oninput="saveGlobalNote(${i},this.value)" placeholder="Write pattern insights, trigger phrases, aha moments…">${note.content || ""}</textarea>`;
+          container.appendChild(block);
+        });
+      }
+      function addNote() {
+        const n = getGlobalNotes();
+        n.push({ title: "", content: "", created: Date.now() });
+        setGlobalNotes(n);
+        buildNotes();
+      }
+      function saveGlobalNoteTitle(i, val) {
+        const n = getGlobalNotes();
+        if (n[i]) {
+          n[i].title = val;
+          setGlobalNotes(n);
+        }
+      }
+      function saveGlobalNote(i, val) {
+        const n = getGlobalNotes();
+        if (n[i]) {
+          n[i].content = val;
+          setGlobalNotes(n);
+        }
+      }
+      function deleteNote(i) {
+        if (confirm("Delete this note?")) {
+          const n = getGlobalNotes();
+          n.splice(i, 1);
+          setGlobalNotes(n);
+          buildNotes();
+        }
+      }
+
+      /* ================================================================
+         CLEAN DASHBOARDS (CODEFORCES & LEETCODE)
+         ================================================================ */
+      function buildPlatformDashboard(platform) {
+        const inner = document.getElementById(
+          platform === "codeforces" ? "cf-view-inner" : "lc-view-inner",
+        );
+        inner.innerHTML = "";
+
+        const data = DSA_DATA[platform];
+        if (!data) return;
+
+        const comp = data.competitions;
+        const titleName =
+          platform === "codeforces" ? "Codeforces Arena" : "LeetCode Arena";
+        const themeColor = platform === "codeforces" ? "#6a7acc" : "#e8a838";
+
+        // Banner
+        inner.innerHTML = `
+          <div class="cf-banner" style="${platform === "leetcode" ? "background: linear-gradient(135deg, #14110b 70%, #282014 50%); border-color: #4a3a2a;" : ""}">
+            <div class="cf-banner-title" style="color:${platform === "leetcode" ? "#e8c888" : ""}">${titleName}</div>
+            <div class="cf-banner-sub">Competitive programming — from brute force to graphs</div>
+            <div class="cf-schedule-row">
+              <div class="cf-schedule-badge" style="${platform === "leetcode" ? "background:rgba(232,168,56,0.12); border-color:rgba(232,168,56,0.25); color:#e8c888;" : ""}">
+                <span class="dot" style="${platform === "leetcode" ? "background:#e8a838;" : ""}"></span>${comp.schedule}
+              </div>
+            </div>
+            <div class="cf-tip">${comp.tip}</div>
+            <div class="cf-links-row">
+              <a href="${comp.links.upcoming}" target="_blank" class="cf-link-btn" style="${platform === "leetcode" ? "color:#e8c888; background:rgba(232,168,56,0.1); border-color:rgba(232,168,56,0.2);" : ""}">upcoming contests ↗</a>
+              <a href="${comp.links.problemset}" target="_blank" class="cf-link-btn" style="${platform === "leetcode" ? "color:#e8c888; background:rgba(232,168,56,0.1); border-color:rgba(232,168,56,0.2);" : ""}">problemset ↗</a>
+              <a href="${comp.links.edu}" target="_blank" class="cf-link-btn" style="${platform === "leetcode" ? "color:#e8c888; background:rgba(232,168,56,0.1); border-color:rgba(232,168,56,0.2);" : ""}">explore ↗</a>
+            </div>
+          </div>`;
+
+        const allProbs =
+          platform === "codeforces" ? getAllCFProblems() : getAllLCProblems();
+        const solved = allProbs.filter((p) => getCompleted()[p.id]).length;
+        const total = allProbs.length;
+
+        inner.innerHTML += `
+          <div class="topic-title">Problem Sets</div>
+          <div class="topic-meta" style="margin-bottom:8px">${solved} / ${total} problems solved</div>
+          <div class="platform-grid" id="${platform}-grid"></div>
+        `;
+
+        const grid = document.getElementById(`${platform}-grid`);
+        data.topics.forEach((t) => {
+          const tTotal = t.subtopics.reduce(
+            (sum, st) => sum + st.problems.length,
+            0,
+          );
+          const tSolved = t.subtopics.reduce(
+            (sum, st) =>
+              sum + st.problems.filter((p) => getCompleted()[p.id]).length,
+            0,
+          );
+
+          const card = document.createElement("div");
+          card.className = "platform-card";
+          card.innerHTML = `
+            <div class="platform-card-header">
+              <div class="platform-card-icon" style="color:${themeColor}">${t.icon}</div>
+              <div class="platform-card-title">${t.title}</div>
+            </div>
+            <div class="platform-card-desc">${t.description}</div>
+            <div class="platform-card-meta">${tSolved} / ${tTotal} Solved · ${t.subtopics.length} Sections</div>
+          `;
+          card.onclick = () =>
+            platform === "codeforces" ? showCFTopic(t.id) : showLCTopic(t.id);
+          grid.appendChild(card);
+        });
+      }
+
+      function buildPlatformTopicView(platform, topicId) {
+        const inner = document.getElementById(
+          platform === "codeforces" ? "cf-view-inner" : "lc-view-inner",
+        );
+        const data = DSA_DATA[platform];
+        const topic = data.topics.find((t) => t.id === topicId);
+        if (!topic) return;
+
+        inner.innerHTML = `
+          <div class="breadcrumb">
+            <span onclick="showView('dashboard')">home</span> ›
+            <span onclick="showView('${platform}')" style="cursor:pointer">${platform}</span> ›
+            <span>${topic.title}</span>
+          </div>
+          <div class="topic-title">${topic.title}</div>
+        `;
+
+        const solved = topic.subtopics.reduce(
+          (a, st) => a + st.problems.filter((p) => getCompleted()[p.id]).length,
+          0,
+        );
+        const total = topic.subtopics.reduce(
+          (a, st) => a + st.problems.length,
+          0,
+        );
+        inner.innerHTML += `<div class="topic-meta" style="margin-bottom:24px">${solved} / ${total} solved · ${topic.subtopics.length} subtopics</div>`;
+
+        topic.subtopics.forEach((st) => {
+          const sb = buildPlatformSubtopicBlock(platform, st);
+          inner.appendChild(sb);
+        });
+      }
+
+      function buildPlatformSubtopicBlock(platform, st) {
+        const c = getCompleted();
+        const stSolved = st.problems.filter((p) => c[p.id]).length;
+        const block = document.createElement("div");
+        block.className = "subtopic-block";
+        block.innerHTML = `
+          <div class="subtopic-title-row" onclick="toggleSubtopic('${platform}-${st.id}')">
+            <div class="subtopic-name">${st.title}</div>
+            <div class="subtopic-count">${stSolved}/${st.problems.length}</div>
+            <div class="subtopic-toggle" id="stoggle-${platform}-${st.id}">collapse ↑</div>
+          </div>
+          <div class="subtopic-desc">${st.description}</div>
+          <div class="subtopic-body" id="stbody-${platform}-${st.id}">
+            <div class="problem-table">${st.problems.map((p) => buildPlatformProblemRow(platform, p)).join("")}</div>
+          </div>`;
+        return block;
+      }
+
+      function buildPlatformProblemRow(platform, p) {
+        const done = getCompleted()[p.id] ? "completed" : "";
+        const tagsHtml = (p.tags || [])
+          .map(
+            (t) =>
+              `<span class="cf-tag ${platform === "leetcode" ? "plat-leetcode-tag" : ""}">${t}</span>`,
+          )
+          .join("");
+        const themeColor = platform === "codeforces" ? "#6a7acc" : "#e8a838";
+
+        return `
+          <div class="problem-row-cf ${done}" id="platrow-${p.id}">
+            <div class="p-check" onclick="togglePlatformProblem('${platform}','${p.id}')"><span class="p-check-icon">✓</span></div>
+            <div class="p-name" onclick="openModal('${p.id}')">${p.title}</div>
+            <div class="p-cf-rating" style="${platform === "leetcode" ? "background:var(--bg3); color:var(--text); border:1px solid var(--line2);" : ""}">${p.difficulty}</div>
+            <div class="p-platform plat-${platform}" onclick="window.open('${p.link}','_blank')">${platform === "leetcode" ? "LC" : "CF"}</div>
+            <button class="p-hint-btn" onclick="toggleCFHint('${p.id}')" style="border-color:${themeColor}40;color:${themeColor}">?</button>
+          </div>
+          <div class="cf-hint-row" id="cfhint-${p.id}">
+            <div class="cf-tags-row">${tagsHtml}</div>
+            <div class="hint-trigger-toggle" id="cfhtoggle-${p.id}" onclick="toggleCFHintInner('${p.id}')">
+              <span class="arrow">▶</span> pattern trigger &amp; hint
+            </div>
+            <div class="hint-trigger-content" id="cfhcontent-${p.id}">
+              <div class="hint-trigger-tag" style="background:${themeColor}1a;color:${themeColor}">${p.trigger}</div>
+              <div class="hint-body-text">${p.hint}</div>
+            </div>
+          </div>`;
+      }
+
+      function togglePlatformProblem(platform, probId) {
+        const c = getCompleted();
+        c[probId] = !c[probId];
+        setCompleted(c);
+        recordSolveTime(probId, c[probId]);
+        const row = document.getElementById("platrow-" + probId);
+        if (row) row.classList.toggle("completed", !!c[probId]);
+        if (c[probId]) showSolveCapture(probId);
+        updateProgress();
+      }
+
+      /* ================================================================
+         MODAL
+         ================================================================ */
+      let currentModalId = null;
+
+      function openModal(probId) {
+        let p = getAllProblems().find((x) => x.id === probId);
+        let platformStyle = "leetcode";
+        let platName = "LeetCode";
+
+        if (!p) {
+          p = getCFProblemById(probId);
+          if (p) {
+            platformStyle = "codeforces";
+            platName = "Codeforces";
+          }
+        }
+        if (!p) {
+          p = getLCProblemById(probId);
+          if (p) {
+            platformStyle = "leetcode";
+            platName = "LeetCode";
+          }
+        }
+        if (!p) return;
+
+        currentModalId = probId;
+        const c = getCompleted();
+        const tagsHtml = p.tags
+          ? p.tags
+              .map(
+                (t) =>
+                  `<span class="cf-tag ${platformStyle === "leetcode" ? "plat-leetcode-tag" : ""}">${t}</span>`,
+              )
+              .join("")
+          : "";
+        const themeColor =
+          platformStyle === "codeforces" ? "#6a7acc" : "#e8a838";
+
+        document.getElementById("modal-title").textContent = p.title;
+        document.getElementById("modal-meta").innerHTML = `
+          <span class="${p.tags ? "p-cf-rating" : "p-diff diff-" + p.difficulty}" style="${p.tags && platformStyle === "leetcode" ? "background:var(--bg3); color:var(--text); border:1px solid var(--line2);" : ""}">${p.difficulty}</span>
+          <span class="p-platform plat-${platformStyle}" style="padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:11px">${platName}</span>
+          ${p.day ? `<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">Day ${p.day}</span>` : ""}
+          ${tagsHtml ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${tagsHtml}</div>` : ""}
+        `;
+
+        document.getElementById("modal-hint-section").innerHTML = `
+          <div class="modal-hint-toggle" id="modal-hint-toggle" onclick="toggleModalHint()">
+            <span class="arrow">▶</span>
+            <span class="modal-section-label" style="margin:0; ${p.tags ? "color:" + themeColor : ""}">pattern trigger &amp; hint</span>
+          </div>
+          <div class="modal-hint-content" id="modal-hint-content">
+            <div class="modal-trigger" style="${p.tags ? `background:${themeColor}1a;color:${themeColor};` : ""}">${p.trigger}</div>
+            <div class="modal-hint-text">${p.hint}</div>
+          </div>`;
+
+        document.getElementById("modal-link-container").innerHTML =
+          `<a href="${p.link}" target="_blank" class="modal-link ${platformStyle === "leetcode" ? "lc" : "cf"}">Open on ${platName} ↗</a>`;
+
+        const checkRow = document.getElementById("modal-check-row");
+        const done = !!c[p.id];
+        checkRow.innerHTML = `
+          <div class="p-check ${done ? "completed" : ""}" id="modal-chk" onclick="toggleFromModal('${p.id}')" style="width:18px;height:18px">
+            <span class="p-check-icon">✓</span>
+          </div>
+          <span style="font-size:13px;color:var(--mid)" id="modal-check-label">${done ? "marked as solved" : "mark as solved"}</span>`;
+
+        const noteArea = document.getElementById("modal-note-area");
+        noteArea.value = getNotes()[probId] || "";
+        noteArea.oninput = () => {
+          const n = getNotes();
+          n[probId] = noteArea.value;
+          setNotes(n);
+        };
+
+        document.getElementById("modal-overlay").classList.add("open");
+      }
+
+      function toggleFromModal(probId) {
+        const c = getCompleted();
+        c[probId] = !c[probId];
+        setCompleted(c);
+        recordSolveTime(probId, c[probId]);
+        const chk = document.getElementById("modal-chk");
+        const lbl = document.getElementById("modal-check-label");
+        if (chk) chk.classList.toggle("completed", !!c[probId]);
+        if (lbl)
+          lbl.textContent = c[probId] ? "marked as solved" : "mark as solved";
+
+        // Try to update whatever row might be visible
+        const row = document.getElementById("prow-" + probId);
+        if (row) row.classList.toggle("completed", !!c[probId]);
+        const platrow = document.getElementById("platrow-" + probId);
+        if (platrow) platrow.classList.toggle("completed", !!c[probId]);
+
+        if (c[probId]) showSolveCapture(probId);
+        updateProgress();
+      }
+
+      function toggleModalHint() {
+        document.getElementById("modal-hint-toggle")?.classList.toggle("open");
+        document.getElementById("modal-hint-content")?.classList.toggle("open");
+      }
+      function closeModal(e) {
+        if (e.target === document.getElementById("modal-overlay"))
+          closeModalDirect();
+      }
+      function closeModalDirect() {
+        document.getElementById("modal-overlay").classList.remove("open");
+        currentModalId = null;
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeModalDirect();
+          closeTimer();
+        }
+      });
+
+      /* ================================================================
+         TIMER
+         ================================================================ */
+      let timerInterval = null;
+      let timerSeconds = 25 * 60;
+      let timerRunning = false;
+      let timerProbId = null;
+
+      function openTimer(probId) {
+        timerProbId = probId;
+        resetTimer();
+        const label = document.getElementById("timer-problem-label");
+        if (probId) {
+          const p =
+            getAllProblems().find((x) => x.id === probId) ||
+            getCFProblemById(probId) ||
+            getLCProblemById(probId);
+          label.textContent = p ? p.title : "focus session";
+        } else {
+          label.textContent = "focus session";
+        }
+        document.getElementById("timer-overlay").classList.add("open");
+      }
+
+      function openTimerForCurrent() {
+        closeModalDirect();
+        openTimer(currentModalId);
+      }
+      function closeTimer() {
+        document.getElementById("timer-overlay").classList.remove("open");
+        pauseTimer();
+      }
+      function closeTimerOnBg(e) {
+        if (e.target === document.getElementById("timer-overlay")) closeTimer();
+      }
+
+      function setTimerPreset(mins, el) {
+        document
+          .querySelectorAll(".timer-preset")
+          .forEach((p) => p.classList.remove("active"));
+        el.classList.add("active");
+        timerSeconds = mins * 60;
+        timerRunning = false;
+        clearInterval(timerInterval);
+        document.getElementById("timer-start-btn").textContent = "start";
+        updateTimerDisplay();
+      }
+
+      function toggleTimer() {
+        if (timerRunning) pauseTimer();
+        else startTimer();
+      }
+
+      function startTimer() {
+        timerRunning = true;
+        document.getElementById("timer-start-btn").textContent = "pause";
+        timerInterval = setInterval(() => {
+          timerSeconds--;
+          updateTimerDisplay();
+          if (timerSeconds <= 0) {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            document.getElementById("timer-start-btn").textContent = "start";
+            document.getElementById("timer-display").textContent = "00:00";
+            if (Notification.permission === "granted") {
+              new Notification("Time is up!", {
+                body: "Your 25-minute session ended. Did you solve it?",
+              });
+            } else {
+              alert("Time is up! Your session has ended.");
+            }
+          }
+        }, 1000);
+      }
+
+      function pauseTimer() {
+        timerRunning = false;
+        clearInterval(timerInterval);
+        document.getElementById("timer-start-btn").textContent = "start";
+      }
+
+      function resetTimer() {
+        pauseTimer();
+        const activePreset = document.querySelector(".timer-preset.active");
+        const mins = activePreset ? parseInt(activePreset.textContent) : 25;
+        timerSeconds = mins * 60;
+        updateTimerDisplay();
+      }
+
+      function updateTimerDisplay() {
+        const m = Math.floor(timerSeconds / 60),
+          s = timerSeconds % 60;
+        const display = document.getElementById("timer-display");
+        display.textContent =
+          String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+        display.className =
+          "timer-display" + (timerSeconds < 300 ? " warning" : "");
+      }
+
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+
+      /* ================================================================
+         POST-SOLVE CAPTURE
+         ================================================================ */
+      let captureId = null;
+
+      function showSolveCapture(probId) {
+        captureId = probId;
+        const p =
+          getAllProblems().find((x) => x.id === probId) ||
+          getCFProblemById(probId) ||
+          getLCProblemById(probId);
+        const sub = document.getElementById("sc-problem-name");
+        if (sub && p)
+          sub.textContent = `"${p.title}" — what pattern trigger did you spot?`;
+        document.getElementById("sc-input").value = "";
+        document.getElementById("solve-capture").classList.add("open");
+      }
+
+      function closeSolveCapture(save) {
+        if (save && captureId) {
+          const val = document.getElementById("sc-input").value.trim();
+          if (val) {
+            const logs = getPatternLogs();
+            if (!logs[captureId]) logs[captureId] = [];
+            logs[captureId].push({ text: val, ts: Date.now() });
+            setPatternLogs(logs);
+            const notes = getNotes();
+            const prefix = `[pattern log ${new Date().toLocaleDateString()}]: `;
+            notes[captureId] =
+              (notes[captureId] ? notes[captureId] + "\n" : "") + prefix + val;
+            setNotes(notes);
+          }
+        }
+        document.getElementById("solve-capture").classList.remove("open");
+        captureId = null;
+      }
+
+      /* ================================================================
+         EXPORT / IMPORT / SYNC
+         ================================================================ */
+      function exportProgress() {
+        const data = {
+          completed: getCompleted(),
+          notes: getNotes(),
+          global_notes: getGlobalNotes(),
+          solve_dates: DB.get("solve_dates") || {},
+          solve_times: DB.get("solve_times") || {},
+          pattern_logs: getPatternLogs(),
+          exported_at: new Date().toISOString(),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dsa-progress.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function importProgress(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (data.completed) DB.set("completed", data.completed);
+            if (data.notes) DB.set("notes", data.notes);
+            if (data.global_notes) DB.set("global_notes", data.global_notes);
+            if (data.solve_dates) DB.set("solve_dates", data.solve_dates);
+            if (data.solve_times) DB.set("solve_times", data.solve_times);
+            if (data.pattern_logs) DB.set("pattern_logs", data.pattern_logs);
+            alert("Progress imported successfully!");
+            buildDashboard();
+            updateProgress();
+          } catch (e) {
+            alert("Invalid file. Make sure you exported from this tracker.");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function openSyncCode() {
+        const body = document.getElementById("synccode-body");
+        const uid = typeof getSyncCode === "function" ? getSyncCode() : null;
+        if (uid) {
+          body.innerHTML = `
+            <div class="modal-section-label">your sync code (click to copy)</div>
+            <div class="synccode-display" onclick="copySyncCode('${uid}')" id="synccode-val">${uid}</div>
+            <div class="synccode-or">── or link this device to another code ──</div>
+            <input class="synccode-input" id="synccode-input" placeholder="paste sync code from another device…">
+            <button class="sc-btn save" style="width:100%;padding:8px" onclick="applyLinkCode()">link devices</button>`;
+        } else {
+          body.innerHTML = `<div style="font-size:13px;color:var(--mid);line-height:1.6;margin-bottom:12px">Firebase is not configured yet. Set up Firebase and fill in the config in <code style="font-size:11px">sync.js</code> for automatic cross-device sync. Until then, use the export/import buttons below.</div>`;
+        }
+        document.getElementById("synccode-overlay").classList.add("open");
+      }
+
+      function copySyncCode(code) {
+        navigator.clipboard?.writeText(code).then(() => {
+          const el = document.getElementById("synccode-val");
+          if (el) {
+            el.textContent = "copied!";
+            setTimeout(() => {
+              el.textContent = code;
+            }, 1500);
+          }
+        });
+      }
+
+      async function applyLinkCode() {
+        const input = document.getElementById("synccode-input");
+        if (!input || !input.value.trim()) return;
+        const ok = await linkSyncCode(input.value.trim());
+        if (ok) {
+          alert("Devices linked! Your progress will sync shortly.");
+          closeSyncCode();
+        }
+      }
+
+      function closeSyncCode() {
+        document.getElementById("synccode-overlay").classList.remove("open");
+      }
+      function closeSyncCodeOnBg(e) {
+        if (e.target === document.getElementById("synccode-overlay"))
+          closeSyncCode();
+      }
+
+      /* ================================================================
+         INIT
+         ================================================================ */
+      buildNav();
+      buildDashboard();
+      window._dsaAppReady = true;
+      initSync();
+    </script>
+  </body>
+</html>
