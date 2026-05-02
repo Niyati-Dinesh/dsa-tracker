@@ -168,6 +168,44 @@ async function linkSyncCode(code) {
   userId = code;
   localStorage.setItem("dsa_sync_uid", code);
 
+  // Re-subscribe to the new user's snapshot so remote changes stream in
+  try {
+    const { doc, onSnapshot, setDoc } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    const docRef = doc(db, "users", userId);
+    onSnapshot(docRef, (snap) => {
+      if (!snap.exists()) return;
+      const remote = snap.data();
+      const local = {
+        completed: JSON.parse(localStorage.getItem("dsa_completed") || "{}"),
+        notes: JSON.parse(localStorage.getItem("dsa_notes") || "{}"),
+        global_notes: JSON.parse(localStorage.getItem("dsa_global_notes") || "[]"),
+        solve_dates: JSON.parse(localStorage.getItem("dsa_solve_dates") || "{}"),
+      };
+      const merged = {
+        completed: { ...local.completed, ...(remote.completed || {}) },
+        notes: { ...local.notes, ...(remote.notes || {}) },
+        global_notes:
+          (remote.global_notes || []).length >= (local.global_notes || []).length
+            ? remote.global_notes
+            : local.global_notes,
+        solve_dates: { ...local.solve_dates, ...(remote.solve_dates || {}) },
+      };
+      localStorage.setItem("dsa_completed", JSON.stringify(merged.completed));
+      localStorage.setItem("dsa_notes", JSON.stringify(merged.notes));
+      localStorage.setItem("dsa_global_notes", JSON.stringify(merged.global_notes));
+      localStorage.setItem("dsa_solve_dates", JSON.stringify(merged.solve_dates));
+      emitStatus("synced");
+      if (window._dsaAppReady) {
+        buildDashboard();
+        updateProgress();
+      }
+    });
+  } catch (e) {
+    console.error("linkSyncCode snapshot failed:", e);
+  }
+
   await pushToCloud();
   return true;
 }
