@@ -14,7 +14,17 @@
 
   <body>
     <header id="mob-header">
-      <div class="mob-logo">dsa.</div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <div class="mob-logo">dsa.</div>
+        <div
+          class="sync-badge"
+          onclick="openSyncCode()"
+          title="Click to manage sync"
+        >
+          <span class="sync-dot"></span>
+          <span class="sync-label-text">local</span>
+        </div>
+      </div>
       <div class="mob-progress">
         <span id="mob-pct">0%</span>
         <div class="mob-bar">
@@ -35,12 +45,11 @@
           <div class="logo">dsa.</div>
           <div
             class="sync-badge"
-            id="sync-badge"
             onclick="openSyncCode()"
             title="Click to manage sync"
           >
             <span class="sync-dot"></span>
-            <span id="sync-label">local</span>
+            <span class="sync-label-text">local</span>
           </div>
         </div>
         <div class="logo-sub">pattern tracker</div>
@@ -65,45 +74,33 @@
           <span class="nav-icon">◧</span> Notes
         </div>
 
-        <!-- DSA Topics Toggle -->
+        <!-- DSA Topics Group (Yellowish-Orange) -->
         <div
           class="nav-section-header"
           onclick="toggleNavGroup('dsa-group', this)"
           style="margin-top: 12px"
         >
-          <div class="nav-section-title">DSA Topics</div>
-          <div class="nav-arrow">▼</div>
+          <div class="nav-section-title" style="color: #e8a838">DSA Topics</div>
+          <div class="nav-arrow" style="color: #e8a838">▼</div>
         </div>
         <div id="dsa-group" class="nav-group">
+          <!-- Populated by JS: LeetCode first, then DSA Subtopics -->
           <div id="topic-nav"></div>
         </div>
 
-        <!-- Platforms Toggle -->
+        <!-- Competitive Programming Group (Blue) -->
         <div
           class="nav-section-header"
           onclick="toggleNavGroup('cp-group', this)"
           style="margin-top: 12px"
         >
-          <div class="nav-section-title">Platforms</div>
-          <div class="nav-arrow">▼</div>
+          <div class="nav-section-title" style="color: #6a7acc">
+            Competitive Programming
+          </div>
+          <div class="nav-arrow" style="color: #6a7acc">▼</div>
         </div>
         <div id="cp-group" class="nav-group">
-          <div
-            class="nav-topic nav-topic-lc"
-            onclick="showView('leetcode')"
-            id="nav-leetcode"
-          >
-            <span class="nav-icon">❖</span><span>LeetCode</span>
-          </div>
-          <div id="lc-topic-nav"></div>
-
-          <div
-            class="nav-topic nav-topic-cf"
-            onclick="showView('codeforces')"
-            id="nav-codeforces"
-          >
-            <span class="nav-icon">⬡</span><span>Codeforces</span>
-          </div>
+          <!-- Populated by JS: Codeforces then CF Subtopics -->
           <div id="cf-topic-nav"></div>
         </div>
       </nav>
@@ -228,7 +225,7 @@
       </div>
     </main>
 
-    <!-- Mobile tabs -->
+    <!-- Mobile tabs (Restored Notes) -->
     <nav id="mob-tabs">
       <button
         class="mob-tab active"
@@ -246,13 +243,9 @@
         <span class="mob-tab-icon">◎</span
         ><span class="mob-tab-label">Patterns</span>
       </button>
-      <button
-        class="mob-tab"
-        id="mobtab-codeforces"
-        onclick="mobTab('codeforces')"
-      >
-        <span class="mob-tab-icon">⬡</span
-        ><span class="mob-tab-label">CF/LC</span>
+      <button class="mob-tab" id="mobtab-notes" onclick="mobTab('notes')">
+        <span class="mob-tab-icon">◧</span
+        ><span class="mob-tab-label">Notes</span>
       </button>
       <button
         class="mob-tab"
@@ -553,11 +546,12 @@
          SYNC STATUS UI
          ================================================================ */
       onSyncStatusChange((s) => {
-        const badge = document.getElementById("sync-badge");
-        const label = document.getElementById("sync-label");
-        if (!badge) return;
-        badge.className = "sync-badge " + s;
-        label.textContent = s === "offline" ? "local" : s;
+        document.querySelectorAll(".sync-badge").forEach((badge) => {
+          badge.className = "sync-badge " + s;
+        });
+        document.querySelectorAll(".sync-label-text").forEach((label) => {
+          label.textContent = s === "offline" ? "local" : s;
+        });
       });
 
       /* ================================================================
@@ -569,15 +563,39 @@
       }
 
       function buildNav() {
+        // DSA & LeetCode Group
         const dsaNav = document.getElementById("topic-nav");
         dsaNav.innerHTML = "";
+
+        // Add LeetCode Platform
+        dsaNav.innerHTML += `
+          <div class="nav-topic nav-topic-lc" onclick="showView('leetcode')" id="nav-leetcode">
+            <span class="nav-icon" style="color:#e8a838">❖</span><span style="color:#e8a838; font-weight:500;">LeetCode</span>
+          </div>
+        `;
+        if (DSA_DATA.leetcode) {
+          DSA_DATA.leetcode.topics.forEach((t) => {
+            const sub = document.createElement("div");
+            sub.className = "nav-sub";
+            sub.id = "nav-lcsub-" + t.id;
+            sub.textContent = "↳ " + t.title;
+            sub.onclick = (e) => {
+              e.stopPropagation();
+              showLCTopic(t.id);
+            };
+            dsaNav.appendChild(sub);
+          });
+        }
+
+        // Add Standard DSA Subtopics
         DSA_DATA.topics.forEach((t) => {
           const el = document.createElement("div");
           el.className = "nav-topic";
           el.id = "nav-topic-" + t.id;
-          el.innerHTML = `<span class="nav-icon">${t.icon}</span><span>${t.title}</span>`;
+          el.innerHTML = `<span class="nav-icon" style="color:#e8a838">${t.icon}</span><span>${t.title}</span>`;
           el.onclick = () => showTopic(t.id);
           dsaNav.appendChild(el);
+
           t.subtopics.forEach((st) => {
             const sub = document.createElement("div");
             sub.className = "nav-sub";
@@ -591,35 +609,24 @@
           });
         });
 
-        const lcNav = document.getElementById("lc-topic-nav");
-        lcNav.innerHTML = "";
-        if (DSA_DATA.leetcode) {
-          DSA_DATA.leetcode.topics.forEach((t) => {
-            const sub = document.createElement("div");
-            sub.className = "nav-sub";
-            sub.id = "nav-lcsub-" + t.id;
-            sub.textContent = "↳ " + t.title;
-            sub.onclick = (e) => {
-              e.stopPropagation();
-              showLCTopic(t.id);
-            };
-            lcNav.appendChild(sub);
-          });
-        }
+        // Competitive Programming & Codeforces Group
+        const cpNav = document.getElementById("cf-topic-nav");
+        cpNav.innerHTML = "";
 
-        const cfNav = document.getElementById("cf-topic-nav");
-        cfNav.innerHTML = "";
+        // Add Codeforces Platform
+        cpNav.innerHTML += `
+          <div class="nav-topic nav-topic-cf" onclick="showView('codeforces')" id="nav-codeforces">
+            <span class="nav-icon" style="color:#6a7acc">⬡</span><span style="color:#6a7acc; font-weight:500;">Codeforces</span>
+          </div>
+        `;
         if (DSA_DATA.codeforces) {
           DSA_DATA.codeforces.topics.forEach((t) => {
-            const sub = document.createElement("div");
-            sub.className = "nav-sub";
-            sub.id = "nav-cfsub-" + t.id;
-            sub.textContent = "↳ " + t.title;
-            sub.onclick = (e) => {
-              e.stopPropagation();
-              showCFTopic(t.id);
-            };
-            cfNav.appendChild(sub);
+            const el = document.createElement("div");
+            el.className = "nav-topic nav-topic-cf";
+            el.id = "nav-cftopic-" + t.id;
+            el.innerHTML = `<span class="nav-icon" style="color:#6a7acc">${t.icon}</span><span>${t.title}</span>`;
+            el.onclick = () => showCFTopic(t.id);
+            cpNav.appendChild(el);
           });
         }
         buildMobDrawerContent();
@@ -630,11 +637,27 @@
         if (!c) return;
         c.innerHTML = "";
 
-        c.innerHTML += `<div class="mob-drawer-section">DSA Topics</div>`;
+        // DSA & LeetCode Section
+        c.innerHTML += `<div class="mob-drawer-section" style="color:#e8a838;">DSA Topics</div>`;
+        c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('leetcode')"><span class="mob-drawer-icon" style="color:#e8a838">❖</span>LeetCode Platform</div>`;
+
+        if (DSA_DATA.leetcode) {
+          DSA_DATA.leetcode.topics.forEach((t) => {
+            const el = document.createElement("div");
+            el.className = "mob-drawer-item";
+            el.innerHTML = `<span class="mob-drawer-icon" style="color:#e8a838">↳</span>${t.title}`;
+            el.onclick = () => {
+              closeMobDrawer();
+              showLCTopic(t.id);
+            };
+            c.appendChild(el);
+          });
+        }
+
         DSA_DATA.topics.forEach((t) => {
           const el = document.createElement("div");
           el.className = "mob-drawer-item";
-          el.innerHTML = `<span class="mob-drawer-icon">${t.icon}</span>${t.title}`;
+          el.innerHTML = `<span class="mob-drawer-icon" style="color:#e8a838">${t.icon}</span>${t.title}`;
           el.onclick = () => {
             closeMobDrawer();
             showTopic(t.id);
@@ -642,11 +665,22 @@
           c.appendChild(el);
         });
 
-        c.innerHTML += `<div class="mob-drawer-section" style="color:#e8a838; margin-top:8px;">LeetCode</div>`;
-        c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('leetcode')"><span class="mob-drawer-icon" style="color:#e8a838">❖</span>Arena Dashboard</div>`;
+        // Competitive Programming Section
+        c.innerHTML += `<div class="mob-drawer-section" style="color:#6a7acc; margin-top:16px;">Competitive Programming</div>`;
+        c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('codeforces')"><span class="mob-drawer-icon" style="color:#6a7acc">⬡</span>Codeforces Platform</div>`;
 
-        c.innerHTML += `<div class="mob-drawer-section" style="color:#6a7acc; margin-top:8px;">Codeforces</div>`;
-        c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('codeforces')"><span class="mob-drawer-icon" style="color:#6a7acc">⬡</span>Arena Dashboard</div>`;
+        if (DSA_DATA.codeforces) {
+          DSA_DATA.codeforces.topics.forEach((t) => {
+            const el = document.createElement("div");
+            el.className = "mob-drawer-item";
+            el.innerHTML = `<span class="mob-drawer-icon" style="color:#6a7acc">${t.icon}</span>${t.title}`;
+            el.onclick = () => {
+              closeMobDrawer();
+              showCFTopic(t.id);
+            };
+            c.appendChild(el);
+          });
+        }
       }
 
       /* ================================================================
@@ -716,7 +750,7 @@
           .forEach((n) => n.classList.remove("active"));
 
         document.getElementById("view-codeforces").classList.add("active");
-        const navEl = document.getElementById("nav-cfsub-" + topicId);
+        const navEl = document.getElementById("nav-cftopic-" + topicId);
         if (navEl) navEl.classList.add("active");
 
         buildPlatformTopicView("codeforces", topicId);
@@ -828,6 +862,7 @@
               .length,
           0,
         );
+
         document.getElementById("stat-patterns").textContent = completedSubs;
         document.getElementById("stat-patterns-total").textContent =
           "of " + subtopicCount;
@@ -874,7 +909,6 @@
           container.appendChild(row);
           renderDashDayProblems(day, probs);
         });
-
         updateProgress();
       }
 
@@ -1016,7 +1050,7 @@
       }
 
       /* ================================================================
-         DAY PLAN & PATTERNS (unchanged logic)
+         DAY PLAN & PATTERNS
          ================================================================ */
       function buildDayPlan() {
         const allProbs = getAllProblems();
@@ -1418,7 +1452,6 @@
         if (lbl)
           lbl.textContent = c[probId] ? "marked as solved" : "mark as solved";
 
-        // Try to update whatever row might be visible
         const row = document.getElementById("prow-" + probId);
         if (row) row.classList.toggle("completed", !!c[probId]);
         const platrow = document.getElementById("platrow-" + probId);
