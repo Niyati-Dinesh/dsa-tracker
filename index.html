@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DSA Tracker</title>
+    <link rel="icon" type="image/x-icon" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Sora:wght@300;400;500&family=Geist:wght@300;400;500&display=swap"
@@ -23,10 +24,13 @@
           <span class="sync-label-text">local</span>
         </div>
       </div>
-      <div class="mob-progress">
-        <span id="mob-pct">0%</span>
-        <div class="mob-bar">
-          <div class="mob-bar-fill" id="mob-bar-fill"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="search-icon-btn" onclick="openSearch()" title="Search problems (Ctrl+K)">⌕</button>
+        <div class="mob-progress">
+          <span id="mob-pct">0%</span>
+          <div class="mob-bar">
+            <div class="mob-bar-fill" id="mob-bar-fill"></div>
+          </div>
         </div>
       </div>
     </header>
@@ -36,9 +40,12 @@
       <div class="sidebar-header">
         <div style="display:flex;align-items:baseline;justify-content:space-between">
           <div class="logo">dsa.</div>
-          <div class="sync-badge" onclick="openSyncCode()" title="Click to manage sync">
-            <span class="sync-dot"></span>
-            <span class="sync-label-text">local</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="search-icon-btn" onclick="openSearch()" title="Search problems (Ctrl+K)">⌕</button>
+            <div class="sync-badge" onclick="openSyncCode()" title="Click to manage sync">
+              <span class="sync-dot"></span>
+              <span class="sync-label-text">local</span>
+            </div>
           </div>
         </div>
         <div class="logo-sub">pattern tracker</div>
@@ -121,6 +128,28 @@
               <div class="stat-total">of plan</div>
             </div>
           </div>
+
+          <!-- Extra stats row -->
+          <div class="stats-grid stats-grid-sm" style="margin-top:8px">
+            <div class="stat-card stat-card-sm">
+              <div class="stat-label">today</div>
+              <div class="stat-num stat-num-sm" id="stat-today">0</div>
+              <div class="stat-total">solved</div>
+            </div>
+            <div class="stat-card stat-card-sm">
+              <div class="stat-label">this week</div>
+              <div class="stat-num stat-num-sm" id="stat-week">0</div>
+              <div class="stat-total">solved</div>
+            </div>
+            <div class="stat-card stat-card-sm">
+              <div class="stat-label">best streak</div>
+              <div class="stat-num stat-num-sm" id="stat-best-streak">0</div>
+              <div class="stat-total">days</div>
+            </div>
+          </div>
+
+          <!-- Weekly goal widget -->
+          <div id="weekly-goal-widget" style="margin-top:14px"></div>
 
           <div class="dash-actions">
             <button class="timer-btn" onclick="openTimer(null)" style="font-size:11px;padding:6px 12px">
@@ -403,6 +432,28 @@
       <div class="ne-insight-modal">
         <button class="modal-close" onclick="closeNoteInsight()">✕</button>
         <div id="note-insight-content"></div>
+      </div>
+    </div>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="search-overlay" onclick="if(event.target===this)closeSearch()">
+      <div class="search-modal">
+        <div class="search-header">
+          <span class="search-icon-static">⌕</span>
+          <input
+            class="search-input"
+            id="search-input"
+            placeholder="search problems, patterns, tags…"
+            oninput="onSearchInput()"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="search-close-btn" onclick="closeSearch()">✕</button>
+        </div>
+        <div class="search-kbd-hint">press <kbd>Ctrl+K</kbd> to open · <kbd>Esc</kbd> to close</div>
+        <div class="search-results" id="search-results">
+          <div class="search-hint">type to search across all problems…</div>
+        </div>
       </div>
     </div>
 

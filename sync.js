@@ -1,4 +1,4 @@
-// 🔥 Your Firebase config (keep YOUR keys here)
+// 🔥 Firebase config
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC9ZPBY2XrHd8q8-ruAIFkkqC96fXU8kLs",
   authDomain: "dsa-tracker-d7dab.firebaseapp.com",
@@ -8,33 +8,126 @@ const FIREBASE_CONFIG = {
   appId: "1:593958154029:web:797542dbc66a3a4e08ada4",
 };
 
-// ✅ Enable sync directly
 const SYNC_ENABLED = true;
 
 let db = null;
 let userId = null;
-let syncStatus = "offline"; // "offline" | "syncing" | "synced" | "error"
+let syncStatus = "offline";
+let _unsubSnapshot = null;   // FIX: track listener so we can unsubscribe before re-subscribing
+let _pushTimer    = null;    // FIX: debounce timer handle
 
 const syncListeners = [];
 
-function onSyncStatusChange(fn) {
-  syncListeners.push(fn);
-}
-
+function onSyncStatusChange(fn) { syncListeners.push(fn); }
 function emitStatus(s) {
   syncStatus = s;
-  syncListeners.forEach((fn) => fn(s));
+  syncListeners.forEach(fn => fn(s));
 }
 
-// 🚀 MAIN INIT FUNCTION
-async function initSync() {
-  if (!SYNC_ENABLED) {
-    emitStatus("offline");
-    return;
-  }
+// ─── All keys that must be in sync ───────────────────────────────────────────
+// FIX: was only syncing 4 of 8 keys; pattern_logs / diff_ratings / saved_code /
+//      solve_times were silently left out and never reached Firebase.
+const SYNC_KEYS = [
+  "completed", "notes", "global_notes", "solve_dates",
+  "solve_times", "pattern_logs", "diff_ratings", "saved_code", "review_times"
+];
+const ARRAY_KEYS = new Set(["global_notes"]);   // keys whose default is [] not {}
 
+function _getLocalData() {
+  const out = {};
+  SYNC_KEYS.forEach(k => {
+    const raw = localStorage.getItem("dsa_" + k);
+    try { out[k] = raw ? JSON.parse(raw) : (ARRAY_KEYS.has(k) ? [] : {}); }
+    catch { out[k] = ARRAY_KEYS.has(k) ? [] : {}; }
+  });
+  return out;
+}
+
+function _saveLocalData(merged) {
+  SYNC_KEYS.forEach(k => {
+    if (merged[k] !== undefined)
+      localStorage.setItem("dsa_" + k, JSON.stringify(merged[k]));
+  });
+}
+
+// Merge: remote wins for object keys (union); for arrays keep the longer one.
+function _mergeData(local, remote) {
+  return {
+    completed:    { ...local.completed,    ...(remote.completed    || {}) },
+    notes:        { ...local.notes,        ...(remote.notes        || {}) },
+    solve_dates:  { ...local.solve_dates,  ...(remote.solve_dates  || {}) },
+    solve_times:  { ...local.solve_times,  ...(remote.solve_times  || {}) },
+    pattern_logs: { ...local.pattern_logs, ...(remote.pattern_logs || {}) },
+    diff_ratings: { ...local.diff_ratings, ...(remote.diff_ratings || {}) },
+    saved_code:   { ...local.saved_code,   ...(remote.saved_code   || {}) },
+    // For review_times, keep the LATER timestamp per problem (most recent review wins)
+    review_times: Object.fromEntries(
+      [...new Set([
+        ...Object.keys(local.review_times  || {}),
+        ...Object.keys(remote.review_times || {})
+      ])].map(k => [k, Math.max(
+        (local.review_times  || {})[k] || 0,
+        (remote.review_times || {})[k] || 0
+      )])
+    ),
+    global_notes:
+      (remote.global_notes || []).length >= (local.global_notes || []).length
+        ? remote.global_notes
+        : local.global_notes,
+  };
+}
+
+// ─── Snapshot subscription (with cleanup) ────────────────────────────────────
+function _subscribe(docFn, onSnapshotFn) {
+  // FIX: always unsubscribe previous listener before adding a new one
+  if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
+
+  const ref = docFn(db, "users", userId);
+  _unsubSnapshot = onSnapshotFn(ref, snap => {
+    if (!snap.exists()) return;
+    const merged = _mergeData(_getLocalData(), snap.data());
+    _saveLocalData(merged);
+    emitStatus("synced");
+    if (window._dsaAppReady) { buildDashboard(); updateProgress(); }
+  });
+}
+
+// ─── Push local → Firestore (shared low-level) ───────────────────────────────
+async function _doPush(docFn, setDocFn) {
+  emitStatus("syncing");
+  const payload = _getLocalData();
+  payload.lastUpdated = Date.now();
+  await setDocFn(docFn(db, "users", userId), payload);
+  emitStatus("synced");
+}
+
+// ─── Public push (used by debounced syncAfterChange) ─────────────────────────
+async function pushToCloud() {
+  if (!db || !userId) return;
   try {
-    // ✅ Import Firebase (CDN way — correct for your project)
+    // FIX: no redundant double-import; one import, reused by both snapshot + push
+    const { doc, setDoc } =
+      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    await _doPush(doc, setDoc);
+  } catch (e) {
+    console.error("Push failed:", e);
+    emitStatus("error");
+  }
+}
+
+// ─── Debounced change hook (called after every user action) ──────────────────
+// FIX: was firing an immediate Firestore write on every keystroke.
+//      Now waits 800 ms after the last change before pushing.
+function syncAfterChange() {
+  if (!SYNC_ENABLED || !db || !userId) return;
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(pushToCloud, 800);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function initSync() {
+  if (!SYNC_ENABLED) { emitStatus("offline"); return; }
+  try {
     const { initializeApp } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
     const { getFirestore, doc, setDoc, onSnapshot } =
@@ -42,80 +135,20 @@ async function initSync() {
     const { getAuth, signInAnonymously, onAuthStateChanged } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
 
-    // 🔥 Initialize app
     const app = initializeApp(FIREBASE_CONFIG);
     db = getFirestore(app);
     const auth = getAuth(app);
 
-    // 🔐 Anonymous login
     await signInAnonymously(auth);
 
-    onAuthStateChanged(auth, async (user) => {
+    onAuthStateChanged(auth, async user => {
       if (!user) return;
-
-      // 🧠 Restore same user across devices
-      let uid = localStorage.getItem("dsa_sync_uid");
-      if (!uid) {
-        uid = user.uid;
-        localStorage.setItem("dsa_sync_uid", uid);
-      }
-
+      const uid = localStorage.getItem("dsa_sync_uid") || user.uid;
+      localStorage.setItem("dsa_sync_uid", uid);
       userId = uid;
 
-      const docRef = doc(db, "users", userId);
-
-      // 🔄 Listen for realtime updates
-      onSnapshot(docRef, (snap) => {
-        if (!snap.exists()) return;
-
-        const remote = snap.data();
-
-        const local = {
-          completed: JSON.parse(localStorage.getItem("dsa_completed") || "{}"),
-          notes: JSON.parse(localStorage.getItem("dsa_notes") || "{}"),
-          global_notes: JSON.parse(
-            localStorage.getItem("dsa_global_notes") || "[]",
-          ),
-          solve_dates: JSON.parse(
-            localStorage.getItem("dsa_solve_dates") || "{}",
-          ),
-        };
-
-        // 🔀 Merge logic
-        const merged = {
-          completed: { ...local.completed, ...(remote.completed || {}) },
-          notes: { ...local.notes, ...(remote.notes || {}) },
-          global_notes:
-            (remote.global_notes || []).length >=
-            (local.global_notes || []).length
-              ? remote.global_notes
-              : local.global_notes,
-          solve_dates: { ...local.solve_dates, ...(remote.solve_dates || {}) },
-        };
-
-        // 💾 Save locally
-        localStorage.setItem("dsa_completed", JSON.stringify(merged.completed));
-        localStorage.setItem("dsa_notes", JSON.stringify(merged.notes));
-        localStorage.setItem(
-          "dsa_global_notes",
-          JSON.stringify(merged.global_notes),
-        );
-        localStorage.setItem(
-          "dsa_solve_dates",
-          JSON.stringify(merged.solve_dates),
-        );
-
-        emitStatus("synced");
-
-        // 🔁 Re-render UI if loaded
-        if (window._dsaAppReady) {
-          buildDashboard();
-          updateProgress();
-        }
-      });
-
-      // ⬆️ Push initial data
-      await pushToCloud();
+      _subscribe(doc, onSnapshot);
+      await _doPush(doc, setDoc);
       emitStatus("synced");
     });
   } catch (e) {
@@ -124,88 +157,29 @@ async function initSync() {
   }
 }
 
-// ☁️ Push local → Firebase
-async function pushToCloud() {
-  if (!db || !userId) return;
+// ─── Sync code (cross-device linking) ─────────────────────────────────────────
+function getSyncCode() { return userId || null; }
 
-  try {
-    const { doc, setDoc } =
-      await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
-
-    emitStatus("syncing");
-
-    await setDoc(doc(db, "users", userId), {
-      completed: JSON.parse(localStorage.getItem("dsa_completed") || "{}"),
-      notes: JSON.parse(localStorage.getItem("dsa_notes") || "{}"),
-      global_notes: JSON.parse(
-        localStorage.getItem("dsa_global_notes") || "[]",
-      ),
-      solve_dates: JSON.parse(localStorage.getItem("dsa_solve_dates") || "{}"),
-      lastUpdated: Date.now(),
-    });
-
-    emitStatus("synced");
-  } catch (e) {
-    console.error("Push failed:", e);
-    emitStatus("error");
-  }
-}
-
-// 🔄 Call after any change
-function syncAfterChange() {
-  if (SYNC_ENABLED) pushToCloud();
-}
-
-// 🔑 Get sync code (for linking devices)
-function getSyncCode() {
-  return userId || null;
-}
-
-// 🔗 Link another device
 async function linkSyncCode(code) {
   if (!code || !db) return false;
-
   userId = code;
   localStorage.setItem("dsa_sync_uid", code);
 
-  // Re-subscribe to the new user's snapshot so remote changes stream in
   try {
     const { doc, onSnapshot, setDoc } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
-    const docRef = doc(db, "users", userId);
-    onSnapshot(docRef, (snap) => {
-      if (!snap.exists()) return;
-      const remote = snap.data();
-      const local = {
-        completed: JSON.parse(localStorage.getItem("dsa_completed") || "{}"),
-        notes: JSON.parse(localStorage.getItem("dsa_notes") || "{}"),
-        global_notes: JSON.parse(localStorage.getItem("dsa_global_notes") || "[]"),
-        solve_dates: JSON.parse(localStorage.getItem("dsa_solve_dates") || "{}"),
-      };
-      const merged = {
-        completed: { ...local.completed, ...(remote.completed || {}) },
-        notes: { ...local.notes, ...(remote.notes || {}) },
-        global_notes:
-          (remote.global_notes || []).length >= (local.global_notes || []).length
-            ? remote.global_notes
-            : local.global_notes,
-        solve_dates: { ...local.solve_dates, ...(remote.solve_dates || {}) },
-      };
-      localStorage.setItem("dsa_completed", JSON.stringify(merged.completed));
-      localStorage.setItem("dsa_notes", JSON.stringify(merged.notes));
-      localStorage.setItem("dsa_global_notes", JSON.stringify(merged.global_notes));
-      localStorage.setItem("dsa_solve_dates", JSON.stringify(merged.solve_dates));
-      emitStatus("synced");
-      if (window._dsaAppReady) {
-        buildDashboard();
-        updateProgress();
-      }
-    });
-  } catch (e) {
-    console.error("linkSyncCode snapshot failed:", e);
-  }
+    // Subscribe first so we receive the remote data and merge it locally
+    _subscribe(doc, onSnapshot);
 
-  await pushToCloud();
+    // FIX: was calling pushToCloud() immediately, which OVERWROTE the target
+    //      device's Firestore document with this device's (possibly empty) data.
+    //      Now we wait 3 s so the onSnapshot has time to pull & merge remote data
+    //      before we push the unified result back up.
+    setTimeout(() => pushToCloud(), 3000);
+  } catch (e) {
+    console.error("linkSyncCode failed:", e);
+    return false;
+  }
   return true;
 }

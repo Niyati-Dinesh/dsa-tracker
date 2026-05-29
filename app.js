@@ -58,6 +58,39 @@ const setSavedCode = (o) => {
   syncAfterChange();
 };
 
+// Review times: { probId: timestamp } — updated each time you mark a review done.
+// Separate from solve_times so the review clock resets independently of solving.
+const getReviewTimes = () => DB.get("review_times") || {};
+const setReviewTimes = (o) => {
+  DB.set("review_times", o);
+  syncAfterChange();
+};
+
+function markReviewed(probId) {
+  const rt = getReviewTimes();
+  rt[probId] = Date.now();
+  setReviewTimes(rt);
+  // Also record today as an active day (reviewing counts)
+  const dates = DB.get("solve_dates") || {};
+  dates[new Date().toDateString()] = true;
+  DB.set("solve_dates", dates);
+  syncAfterChange();
+  // Animate removal then rebuild
+  const card = document.getElementById("rc-" + probId);
+  if (card) {
+    card.style.transition =
+      "opacity .25s, max-height .3s, margin .3s, padding .3s";
+    card.style.opacity = "0";
+    card.style.maxHeight = "0";
+    card.style.margin = "0";
+    card.style.padding = "0";
+    card.style.overflow = "hidden";
+    setTimeout(() => buildReviewBlock(), 320);
+  } else {
+    buildReviewBlock();
+  }
+}
+
 /* ================================================================
    DATA HELPERS
    ================================================================ */
@@ -135,11 +168,57 @@ function getStreakCount() {
   const dates = DB.get("solve_dates") || {};
   let streak = 0;
   let d = new Date();
+  // FIX: if today hasn't been solved yet, start the check from yesterday
+  // so the streak doesn't reset to 0 first thing every morning.
+  if (!dates[d.toDateString()]) d.setDate(d.getDate() - 1);
   while (dates[d.toDateString()]) {
     streak++;
     d.setDate(d.getDate() - 1);
   }
   return streak;
+}
+
+function getLongestStreak() {
+  const dates = DB.get("solve_dates") || {};
+  const keys = Object.keys(dates).sort((a, b) => new Date(a) - new Date(b));
+  let best = 0,
+    current = 0;
+  let prev = null;
+  keys.forEach((k) => {
+    const d = new Date(k);
+    if (prev) {
+      const gap = Math.round((d - prev) / 86400000);
+      current = gap === 1 ? current + 1 : 1;
+    } else {
+      current = 1;
+    }
+    if (current > best) best = current;
+    prev = d;
+  });
+  return best;
+}
+
+function getTodaySolveCount() {
+  const times = DB.get("solve_times") || {};
+  const today = new Date().toDateString();
+  return Object.values(times).filter(
+    (ts) => ts && new Date(ts).toDateString() === today,
+  ).length;
+}
+
+function getThisWeekSolveCount() {
+  const times = DB.get("solve_times") || {};
+  const now = Date.now();
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  return Object.values(times).filter((ts) => ts && now - ts < WEEK).length;
+}
+
+function getWeeklyGoal() {
+  return DB.get("weekly_goal") || 10;
+}
+function setWeeklyGoal(n) {
+  DB.set("weekly_goal", n);
+  syncAfterChange();
 }
 
 /* ================================================================
@@ -170,7 +249,6 @@ function buildNav() {
     <div class="nav-topic nav-topic-lc" onclick="showView('leetcode')" id="nav-leetcode">
       <span class="nav-icon" style="color:#e8a838"></span><span style="color:#e8a838; font-weight:500;">Leetcode</span>
     </div>`;
-  
 
   DSA_DATA.topics.forEach((t) => {
     const el = document.createElement("div");
@@ -463,59 +541,152 @@ function buildHeatmap(container) {
 }
 
 /* ================================================================
-   SMART REVIEW BLOCK (intelligent 7-day recommendations)
+   SMART REVIEW BLOCK
+   Uses review_times (last reviewed) falling back to solve_times (first solved).
+   This way "mark reviewed" properly resets the countdown — previously the
+   block had no way to track that you'd done a review session at all.
    ================================================================ */
 function buildReviewBlock() {
   const container = document.getElementById("review-block-container");
   const c = getCompleted();
   const solveTimes = DB.get("solve_times") || {};
+  const reviewTimes = getReviewTimes();
   const diffRatings = getDiffRatings();
+  const notes = getNotes();
   const now = Date.now();
   const DAY = 24 * 60 * 60 * 1000;
 
-  // Score = urgency based on time elapsed + personal difficulty rating
-  const diffWeight = { easy: 14, medium: 7, hard: 4, brutal: 2, undefined: 7 };
+  // Spaced-repetition intervals by personal difficulty
+  const diffWeight = { easy: 14, medium: 7, hard: 3, brutal: 2 };
+  const DEFAULT_INTERVAL = 7;
 
   const due = getAllProblems()
     .concat(getAllCFProblems())
     .concat(getAllLCProblems())
     .filter((p) => c[p.id] && solveTimes[p.id])
     .map((p) => {
-      const elapsedDays = (now - solveTimes[p.id]) / DAY;
-      const myRating = diffRatings[p.id]; // how hard I found it
-      const reviewInterval = diffWeight[myRating]; // days before re-review
-      const overdue = elapsedDays - reviewInterval;
-      return { ...p, elapsedDays, overdue, myRating };
+      // Use the most recent of solve_time or review_time as the "last seen" anchor
+      const lastSeen = Math.max(solveTimes[p.id] || 0, reviewTimes[p.id] || 0);
+      const elapsedDays = (now - lastSeen) / DAY;
+      const myRating = diffRatings[p.id];
+      const interval = diffWeight[myRating] || DEFAULT_INTERVAL;
+      const overdue = elapsedDays - interval;
+      const nextDue = lastSeen + interval * DAY;
+      return {
+        ...p,
+        elapsedDays,
+        overdue,
+        myRating,
+        interval,
+        nextDue,
+        lastSeen,
+      };
     })
-    .filter((p) => p.overdue >= 0) // only truly due
+    .filter((p) => p.overdue >= 0)
     .sort((a, b) => {
-      // Prioritize: harder personal rating + more overdue
-      const hardnessScore = { brutal: 4, hard: 3, medium: 2, easy: 1 };
-      const aScore = (hardnessScore[a.myRating] || 2) * (1 + a.overdue / 7);
-      const bScore = (hardnessScore[b.myRating] || 2) * (1 + b.overdue / 7);
-      return bScore - aScore;
+      const w = { brutal: 4, hard: 3, medium: 2, easy: 1 };
+      return (
+        (w[b.myRating] || 2) * (1 + b.overdue / 7) -
+        (w[a.myRating] || 2) * (1 + a.overdue / 7)
+      );
     })
     .slice(0, 8);
 
   if (!due.length) {
-    container.innerHTML = "";
+    // Show upcoming reviews instead of leaving the section blank
+    const upcoming = getAllProblems()
+      .concat(getAllCFProblems())
+      .concat(getAllLCProblems())
+      .filter((p) => c[p.id] && solveTimes[p.id])
+      .map((p) => {
+        const lastSeen = Math.max(
+          solveTimes[p.id] || 0,
+          reviewTimes[p.id] || 0,
+        );
+        const myRating = diffRatings[p.id];
+        const interval = diffWeight[myRating] || DEFAULT_INTERVAL;
+        const nextDue = lastSeen + interval * DAY;
+        return { ...p, nextDue };
+      })
+      .filter((p) => p.nextDue > now)
+      .sort((a, b) => a.nextDue - b.nextDue)
+      .slice(0, 3);
+
+    if (!upcoming.length) {
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="review-block">
+        <div class="review-block-title">✓ all caught up — next reviews</div>
+        <div class="review-upcoming-list">
+          ${upcoming
+            .map((p) => {
+              const daysUntil = Math.ceil((p.nextDue - now) / DAY);
+              const myR = p.myRating
+                ? `<span class="review-my-diff my-diff-${p.myRating}">${p.myRating}</span>`
+                : "";
+              return `<div class="review-upcoming-item">
+              <span class="review-upcoming-name" onclick="openModal('${p.id}')">${p.title}</span>
+              ${myR}
+              <span class="review-upcoming-when">in ${daysUntil}d</span>
+            </div>`;
+            })
+            .join("")}
+        </div>
+      </div>`;
     return;
   }
 
   const block = document.createElement("div");
   block.className = "review-block";
-  block.innerHTML = `<div class="review-block-title">⟳ smart review — due for revisit</div>`;
+  block.innerHTML = `
+    <div class="review-block-header">
+      <div class="review-block-title">⟳ smart review — ${due.length} due</div>
+      <div class="review-block-subtitle">ranked by urgency + your difficulty rating</div>
+    </div>`;
+
   due.forEach((p) => {
     const daysAgo = Math.floor(p.elapsedDays);
-    const ratingLabel = p.myRating
+    const overdueBy = Math.floor(p.overdue);
+    const ratingHtml = p.myRating
       ? `<span class="review-my-diff my-diff-${p.myRating}">${p.myRating}</span>`
       : "";
-    const pill = document.createElement("span");
-    pill.className = "review-pill";
-    pill.innerHTML = `${p.title} ${ratingLabel} <span class="days-ago">${daysAgo}d ago</span>`;
-    pill.onclick = () => openModal(p.id);
-    block.appendChild(pill);
+    const notePreview = (notes[p.id] || "")
+      .replace(/\[pattern log.*?\]:/g, "")
+      .trim()
+      .slice(0, 90);
+    const urgencyClass =
+      overdueBy > 7
+        ? "review-card-urgent"
+        : overdueBy > 2
+          ? "review-card-late"
+          : "";
+
+    const card = document.createElement("div");
+    card.className = `review-card ${urgencyClass}`;
+    card.id = "rc-" + p.id;
+    card.innerHTML = `
+      <div class="review-card-top">
+        <div class="review-card-name" onclick="openModal('${p.id}')">${p.title}</div>
+        <div class="review-card-badges">
+          ${ratingHtml}
+          <span class="review-overdue-badge">${daysAgo}d ago</span>
+        </div>
+      </div>
+      ${
+        notePreview
+          ? `<div class="review-card-note">"${notePreview}${notePreview.length === 90 ? "…" : ""}"</div>`
+          : `<div class="review-card-hint">${(p.trigger || "").slice(0, 100)}</div>`
+      }
+      <div class="review-card-actions">
+        <button class="review-open-btn" onclick="openModal('${p.id}')">open problem ↗</button>
+        <button class="review-done-btn" onclick="markReviewed('${p.id}')">✓ mark reviewed</button>
+      </div>`;
+    block.appendChild(card);
   });
+
   container.innerHTML = "";
   container.appendChild(block);
 }
@@ -552,6 +723,17 @@ function buildDashboard() {
   document.getElementById("stat-day").textContent = maxDay;
   document.getElementById("stat-streak").textContent = getStreakCount();
 
+  // Extra stats
+  const todayEl = document.getElementById("stat-today");
+  if (todayEl) todayEl.textContent = getTodaySolveCount();
+  const bestStreakEl = document.getElementById("stat-best-streak");
+  if (bestStreakEl) bestStreakEl.textContent = getLongestStreak();
+  const weekEl = document.getElementById("stat-week");
+  if (weekEl) weekEl.textContent = getThisWeekSolveCount();
+
+  // Weekly goal widget
+  buildWeeklyGoalWidget();
+
   buildReviewBlock();
 
   // Heatmap
@@ -584,6 +766,33 @@ function buildDashboard() {
     renderDashDayProblems(day, probs);
   });
   updateProgress();
+}
+
+function buildWeeklyGoalWidget() {
+  const el = document.getElementById("weekly-goal-widget");
+  if (!el) return;
+  const goal = getWeeklyGoal();
+  const done = getThisWeekSolveCount();
+  const pct = Math.min(100, Math.round((done / goal) * 100));
+  const met = done >= goal;
+  el.innerHTML = `
+    <div class="wg-row">
+      <span class="wg-label">weekly goal</span>
+      <span class="wg-count ${met ? "wg-met" : ""}">${done} / ${goal}</span>
+      <button class="wg-edit-btn" onclick="promptWeeklyGoal()" title="change goal">✎</button>
+    </div>
+    <div class="wg-bar-bg"><div class="wg-bar-fill ${met ? "wg-bar-met" : ""}" style="width:${pct}%"></div></div>
+    ${met ? `<div class="wg-congrats">🎯 weekly goal reached!</div>` : `<div class="wg-left">${goal - done} more to hit your goal</div>`}`;
+}
+
+function promptWeeklyGoal() {
+  const current = getWeeklyGoal();
+  const val = prompt(`Set weekly problem goal (current: ${current}):`, current);
+  const n = parseInt(val);
+  if (n > 0) {
+    setWeeklyGoal(n);
+    buildWeeklyGoalWidget();
+  }
 }
 
 function renderDashDayProblems(day, probs) {
@@ -868,7 +1077,7 @@ function buildPatterns() {
    NOTES  — inline expandable cards, no modal
    ================================================================ */
 let _expandedNote = null; // index of currently expanded note
-let _editingNote = null;  // index of note with editor open
+let _editingNote = null; // index of note with editor open
 
 function escHtml(str) {
   return (str || "")
@@ -894,15 +1103,22 @@ function buildNotes() {
 
 function buildNoteCard(note, i) {
   const d = new Date(note.created || Date.now()).toLocaleDateString("en-IN", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
   const isExpanded = _expandedNote === i;
-  const tagHtml = (note.tags || []).map(t => `<span class="note-tag">${escHtml(t)}</span>`).join("");
+  const tagHtml = (note.tags || [])
+    .map((t) => `<span class="note-tag">${escHtml(t)}</span>`)
+    .join("");
 
   const isEditing = _editingNote === i;
 
   const card = document.createElement("div");
-  card.className = "note-card" + (isExpanded ? " expanded" : "") + (isEditing ? " editing" : "");
+  card.className =
+    "note-card" +
+    (isExpanded ? " expanded" : "") +
+    (isEditing ? " editing" : "");
   card.id = "note-card-" + i;
 
   // ── Full content display (always visible) ──
@@ -920,31 +1136,50 @@ function buildNoteCard(note, i) {
   const linksHtml = (note.links || []).length
     ? `<div class="note-view-section">
         <div class="note-view-section-label">links</div>
-        <div class="note-view-links">${(note.links).map(l =>
-          `<a href="${escHtml(l.url)}" target="_blank" class="note-view-link-item" onclick="event.stopPropagation()">&#128279; ${escHtml(l.label)}</a>`
-        ).join("")}</div>
+        <div class="note-view-links">${note.links
+          .map(
+            (l) =>
+              `<a href="${escHtml(l.url)}" target="_blank" class="note-view-link-item" onclick="event.stopPropagation()">&#128279; ${escHtml(l.label)}</a>`,
+          )
+          .join("")}</div>
        </div>`
     : "";
 
   const imagesHtml = (note.images || []).length
     ? `<div class="note-view-section">
         <div class="note-view-section-label">images</div>
-        <div class="note-view-images">${(note.images).map(img =>
-          `<img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-view-thumb" onclick="event.stopPropagation();expandNoteImage('${img.dataUrl}')" title="${escHtml(img.name)}">`
-        ).join("")}</div>
+        <div class="note-view-images">${note.images
+          .map(
+            (img) =>
+              `<img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-view-thumb" onclick="event.stopPropagation();expandNoteImage('${img.dataUrl}')" title="${escHtml(img.name)}">`,
+          )
+          .join("")}</div>
        </div>`
     : "";
 
-  const isEmpty = !note.content && !note.code && !note.links?.length && !note.images?.length;
+  const isEmpty =
+    !note.content && !note.code && !note.links?.length && !note.images?.length;
 
   // Build compact metadata pills for collapsed state
   const metaPills = [];
-  if (note.code) metaPills.push(`<span class="note-meta-pill note-meta-code">⌨ ${escHtml(note.codeLang || "code")}</span>`);
-  if ((note.links||[]).length) metaPills.push(`<span class="note-meta-pill note-meta-links">🔗 ${note.links.length} link${note.links.length>1?'s':''}</span>`);
-  if ((note.images||[]).length) metaPills.push(`<span class="note-meta-pill note-meta-images">🖼 ${note.images.length} image${note.images.length>1?'s':''}</span>`);
+  if (note.code)
+    metaPills.push(
+      `<span class="note-meta-pill note-meta-code">⌨ ${escHtml(note.codeLang || "code")}</span>`,
+    );
+  if ((note.links || []).length)
+    metaPills.push(
+      `<span class="note-meta-pill note-meta-links">🔗 ${note.links.length} link${note.links.length > 1 ? "s" : ""}</span>`,
+    );
+  if ((note.images || []).length)
+    metaPills.push(
+      `<span class="note-meta-pill note-meta-images">🖼 ${note.images.length} image${note.images.length > 1 ? "s" : ""}</span>`,
+    );
 
   // Content preview for collapsed state
-  const previewText = (note.content || "").replace(/[#*`>-]/g, "").trim().slice(0, 160);
+  const previewText = (note.content || "")
+    .replace(/[#*`>-]/g, "")
+    .trim()
+    .slice(0, 160);
 
   card.innerHTML = `
     <div class="note-view" onclick="toggleNoteExpand(${i})">
@@ -955,14 +1190,15 @@ function buildNoteCard(note, i) {
         </div>
         <div class="note-view-header-right">
           <span class="note-card-date">${d}</span>
-          <button class="note-edit-btn-pill" onclick="event.stopPropagation();toggleNoteEdit(${i})" title="${isEditing ? 'close editor' : 'edit note'}">${isEditing ? '✕ close' : '✏ edit'}</button>
+          <button class="note-edit-btn-pill" onclick="event.stopPropagation();toggleNoteEdit(${i})" title="${isEditing ? "close editor" : "edit note"}">${isEditing ? "✕ close" : "✏ edit"}</button>
         </div>
       </div>
-      ${isEmpty
-        ? `<div class="note-view-empty">empty note — click edit to add content</div>`
-        : isExpanded
-          ? `${contentHtml}${codeHtml}${linksHtml}${imagesHtml}`
-          : `<div class="note-collapsed-preview">${escHtml(previewText)}${previewText.length===160?"…":""}</div>
+      ${
+        isEmpty
+          ? `<div class="note-view-empty">empty note — click edit to add content</div>`
+          : isExpanded
+            ? `${contentHtml}${codeHtml}${linksHtml}${imagesHtml}`
+            : `<div class="note-collapsed-preview">${escHtml(previewText)}${previewText.length === 160 ? "…" : ""}</div>
              ${metaPills.length ? `<div class="note-meta-pills-row">${metaPills.join("")}</div>` : ""}`
       }
       ${!isEmpty && !isExpanded ? `<div class="note-expand-hint">click to expand</div>` : ""}
@@ -977,30 +1213,42 @@ function renderNoteMarkdown(text) {
   return escHtml(text)
     .replace(/^### (.+)$/gm, '<div class="nv-h3">$1</div>')
     .replace(/^## (.+)$/gm, '<div class="nv-h2">$1</div>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`([^`]+)`/g, '<code class="nv-code">$1</code>')
     .replace(/^&gt; (.+)$/gm, '<div class="nv-quote">$1</div>')
     .replace(/^- (.+)$/gm, '<div class="nv-li">&#8226; $1</div>')
-    .replace(/\n/g, '<br>');
+    .replace(/\n/g, "<br>");
 }
 
 function buildNoteEditorHTML(note, i) {
-  const langOpts = ["cpp","python","java","javascript","go","rust"]
-    .map(l => `<option value="${l}"${(note.codeLang||"cpp")===l?" selected":""}>${l}</option>`).join("");
+  const langOpts = ["cpp", "python", "java", "javascript", "go", "rust"]
+    .map(
+      (l) =>
+        `<option value="${l}"${(note.codeLang || "cpp") === l ? " selected" : ""}>${l}</option>`,
+    )
+    .join("");
 
-  const linksHtml = (note.links || []).map((l, li) =>
-    `<div class="note-link-item">
+  const linksHtml = (note.links || [])
+    .map(
+      (l, li) =>
+        `<div class="note-link-item">
       <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
       <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${li})">✕</button>
-    </div>`).join("");
+    </div>`,
+    )
+    .join("");
 
-  const imagesHtml = (note.images || []).map((img, ii) =>
-    `<div class="note-image-item">
+  const imagesHtml = (note.images || [])
+    .map(
+      (img, ii) =>
+        `<div class="note-image-item">
       <img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-image-thumb" onclick="expandNoteImage('${img.dataUrl}')"/>
       <span class="note-image-name">${escHtml(img.name)}</span>
       <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteImage(${i},${ii})">✕</button>
-    </div>`).join("");
+    </div>`,
+    )
+    .join("");
 
   return `
     <div class="note-editor-body" onclick="event.stopPropagation()">
@@ -1037,7 +1285,7 @@ function buildNoteEditorHTML(note, i) {
           <span class="note-tags-label">tags</span>
           <input class="note-tags-input" id="nei-tags-${i}"
             placeholder="dp, graphs, greedy…"
-            value="${escHtml((note.tags||[]).join(", "))}"
+            value="${escHtml((note.tags || []).join(", "))}"
             oninput="saveInlineNote(${i})" />
         </div>
       </div>
@@ -1073,7 +1321,7 @@ function buildNoteEditorHTML(note, i) {
 }
 
 function toggleNoteExpand(i) {
-  _expandedNote = (_expandedNote === i) ? null : i;
+  _expandedNote = _expandedNote === i ? null : i;
   // Close editor if collapsing
   if (_expandedNote !== i) _editingNote = null;
   buildNotes();
@@ -1086,7 +1334,7 @@ function toggleNoteExpand(i) {
 }
 
 function toggleNoteEdit(i) {
-  _editingNote = (_editingNote === i) ? null : i;
+  _editingNote = _editingNote === i ? null : i;
   // Ensure card is expanded when editing
   if (_editingNote === i) _expandedNote = i;
   buildNotes();
@@ -1102,12 +1350,19 @@ function toggleNoteEdit(i) {
 
 function switchInlineTab(i, tab, btn) {
   // Map tab name to panel element id (code panel has a different id to avoid collision with textarea)
-  const panelIds = { write: `nei-write-${i}`, code: `nei-code-panel-${i}`, links: `nei-links-${i}`, images: `nei-images-${i}` };
-  ["write","code","links","images"].forEach(t => {
+  const panelIds = {
+    write: `nei-write-${i}`,
+    code: `nei-code-panel-${i}`,
+    links: `nei-links-${i}`,
+    images: `nei-images-${i}`,
+  };
+  ["write", "code", "links", "images"].forEach((t) => {
     const p = document.getElementById(panelIds[t]);
     if (p) p.classList.toggle("note-panel-hidden", t !== tab);
   });
-  document.querySelectorAll(`#nei-tabs-${i} .note-tab`).forEach(b => b.classList.remove("active"));
+  document
+    .querySelectorAll(`#nei-tabs-${i} .note-tab`)
+    .forEach((b) => b.classList.remove("active"));
   btn.classList.add("active");
 }
 
@@ -1121,7 +1376,11 @@ function saveInlineNote(i) {
   const langEl = document.getElementById(`nei-lang-${i}`);
   if (titleEl) note.title = titleEl.value;
   if (contentEl) note.content = contentEl.value;
-  if (tagsEl) note.tags = tagsEl.value.split(",").map(t => t.trim()).filter(Boolean);
+  if (tagsEl)
+    note.tags = tagsEl.value
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
   if (codeEl) note.code = codeEl.value;
   if (langEl) note.codeLang = langEl.value;
   n[i] = note;
@@ -1130,20 +1389,25 @@ function saveInlineNote(i) {
   const card = document.getElementById("note-card-" + i);
   if (!card) return;
   const titleDiv = card.querySelector(".note-view-title");
-  if (titleDiv) titleDiv.innerHTML = escHtml(note.title) || '<span style="color:var(--muted);font-weight:400">Untitled</span>';
+  if (titleDiv)
+    titleDiv.innerHTML =
+      escHtml(note.title) ||
+      '<span style="color:var(--muted);font-weight:400">Untitled</span>';
   const contentDiv = card.querySelector(".note-view-content");
   if (contentDiv) contentDiv.innerHTML = renderNoteMarkdown(note.content || "");
   const codeDiv = card.querySelector(".note-view-code code");
   if (codeDiv) codeDiv.textContent = note.code || "";
   const codeLabelDiv = card.querySelector(".note-view-section-label");
-  if (codeLabelDiv && note.code !== undefined) codeLabelDiv.textContent = note.codeLang || "code";
+  if (codeLabelDiv && note.code !== undefined)
+    codeLabelDiv.textContent = note.codeLang || "code";
 }
 
 // Formatting helpers
 function fmtNote(i, before, after) {
   const ta = document.getElementById(`nei-content-${i}`);
   if (!ta) return;
-  const s = ta.selectionStart, e = ta.selectionEnd;
+  const s = ta.selectionStart,
+    e = ta.selectionEnd;
   const sel = ta.value.slice(s, e) || "text";
   ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
   ta.selectionStart = s + before.length;
@@ -1165,7 +1429,15 @@ function fmtNotePrefix(i, prefix) {
 function addNote() {
   const n = getGlobalNotes();
   const idx = n.length;
-  n.push({ title: "", content: "", created: Date.now(), tags: [], links: [], images: [], code: "" });
+  n.push({
+    title: "",
+    content: "",
+    created: Date.now(),
+    tags: [],
+    links: [],
+    images: [],
+    code: "",
+  });
   setGlobalNotes(n);
   _expandedNote = idx;
   _editingNote = idx;
@@ -1201,11 +1473,15 @@ function addInlineNoteLink(i) {
   setGlobalNotes(n);
   const listEl = document.getElementById(`nei-links-list-${i}`);
   if (listEl) {
-    listEl.innerHTML = n[i].links.map((l, li) =>
-      `<div class="note-link-item">
+    listEl.innerHTML = n[i].links
+      .map(
+        (l, li) =>
+          `<div class="note-link-item">
         <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
         <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${li})">✕</button>
-      </div>`).join("");
+      </div>`,
+      )
+      .join("");
   }
 }
 
@@ -1216,18 +1492,23 @@ function removeInlineNoteLink(i, li) {
   const listEl = document.getElementById(`nei-links-list-${i}`);
   if (listEl) {
     listEl.innerHTML = n[i].links.length
-      ? n[i].links.map((l, idx) =>
-          `<div class="note-link-item">
+      ? n[i].links
+          .map(
+            (l, idx) =>
+              `<div class="note-link-item">
             <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
             <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${idx})">✕</button>
-          </div>`).join("")
+          </div>`,
+          )
+          .join("")
       : '<div class="note-panel-empty">No links yet.</div>';
   }
 }
 
 function addInlineNoteImage(i) {
   const input = document.createElement("input");
-  input.type = "file"; input.accept = "image/*";
+  input.type = "file";
+  input.accept = "image/*";
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1239,12 +1520,16 @@ function addInlineNoteImage(i) {
       setGlobalNotes(n);
       const grid = document.getElementById(`nei-images-grid-${i}`);
       if (grid) {
-        grid.innerHTML = n[i].images.map((img, ii) =>
-          `<div class="note-image-item">
+        grid.innerHTML = n[i].images
+          .map(
+            (img, ii) =>
+              `<div class="note-image-item">
             <img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-image-thumb" onclick="expandNoteImage('${img.dataUrl}')"/>
             <span class="note-image-name">${escHtml(img.name)}</span>
             <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteImage(${i},${ii})">✕</button>
-          </div>`).join("");
+          </div>`,
+          )
+          .join("");
       }
     };
     reader.readAsDataURL(file);
@@ -1259,27 +1544,37 @@ function removeInlineNoteImage(i, ii) {
   const grid = document.getElementById(`nei-images-grid-${i}`);
   if (grid) {
     grid.innerHTML = n[i].images.length
-      ? n[i].images.map((img, idx) =>
-          `<div class="note-image-item">
+      ? n[i].images
+          .map(
+            (img, idx) =>
+              `<div class="note-image-item">
             <img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-image-thumb" onclick="expandNoteImage('${img.dataUrl}')"/>
             <span class="note-image-name">${escHtml(img.name)}</span>
             <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteImage(${i},${idx})">✕</button>
-          </div>`).join("")
+          </div>`,
+          )
+          .join("")
       : '<div class="note-panel-empty">No images yet.</div>';
   }
 }
 
 function expandNoteImage(src) {
   const d = document.createElement("div");
-  d.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out";
+  d.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out";
   d.onclick = () => d.remove();
   d.innerHTML = `<img src="${src}" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px #000">`;
   document.body.appendChild(d);
 }
 
 // Legacy stubs — kept so old modal HTML in index.html doesn't throw errors
-function openNoteEditor(idx) { toggleNoteEdit(idx); }
-function closeNoteEditor() { _editingNote = null; buildNotes(); }
+function openNoteEditor(idx) {
+  toggleNoteEdit(idx);
+}
+function closeNoteEditor() {
+  _editingNote = null;
+  buildNotes();
+}
 function saveNoteEditorField() {}
 function addNoteLink() {}
 function renderNoteLinks() {}
@@ -1287,7 +1582,9 @@ function removeNoteLink() {}
 function addNoteImage() {}
 function renderNoteImages() {}
 function removeNoteImage() {}
-function closeNoteInsight() { document.getElementById("note-insight-overlay")?.classList.remove("open"); }
+function closeNoteInsight() {
+  document.getElementById("note-insight-overlay")?.classList.remove("open");
+}
 function openNoteInsight() {}
 
 /* ================================================================
@@ -1306,14 +1603,19 @@ function getCFPoints(problems) {
 function buildCFPointsBadge(points, topicPoints) {
   // Colour the badge based on highest rating bracket reached
   const colour =
-    points >= 10000 ? "#ff6f6f" :
-    points >= 6000  ? "#ffa05a" :
-    points >= 3000  ? "#e8c060" :
-    points >= 1500  ? "#8ab4f8" :
-                      "#6a7acc";
-  const topicHtml = topicPoints !== undefined
-    ? `<span class="cf-pts-topic">+${topicPoints.toLocaleString()} this section</span>`
-    : "";
+    points >= 10000
+      ? "#ff6f6f"
+      : points >= 6000
+        ? "#ffa05a"
+        : points >= 3000
+          ? "#e8c060"
+          : points >= 1500
+            ? "#8ab4f8"
+            : "#6a7acc";
+  const topicHtml =
+    topicPoints !== undefined
+      ? `<span class="cf-pts-topic">+${topicPoints.toLocaleString()} this section</span>`
+      : "";
   return `
     <div class="cf-points-badge">
      
@@ -1358,9 +1660,8 @@ function buildPlatformDashboard(platform) {
   const solved = allProbs.filter((p) => getCompleted()[p.id]).length;
   const total = allProbs.length;
 
-  const pointsBadgeHtml = platform === "codeforces"
-    ? buildCFPointsBadge(getCFPoints(allProbs))
-    : "";
+  const pointsBadgeHtml =
+    platform === "codeforces" ? buildCFPointsBadge(getCFPoints(allProbs)) : "";
 
   inner.innerHTML += `
     <div class="topic-title">Problem Sets</div>
@@ -1418,9 +1719,10 @@ function buildPlatformTopicView(platform, topicId) {
   const totalCFPoints = platform === "codeforces" ? getCFPoints(allCFProbs) : 0;
   const topicProbs = topic.subtopics.flatMap((st) => st.problems);
   const topicPoints = platform === "codeforces" ? getCFPoints(topicProbs) : 0;
-  const pointsBadgeHtml = platform === "codeforces"
-    ? buildCFPointsBadge(totalCFPoints, topicPoints)
-    : "";
+  const pointsBadgeHtml =
+    platform === "codeforces"
+      ? buildCFPointsBadge(totalCFPoints, topicPoints)
+      : "";
 
   inner.innerHTML += `
     <div class="cf-dashboard-meta-row" style="margin-bottom:24px">
@@ -1663,14 +1965,7 @@ function closeModalDirect() {
   currentModalId = null;
 }
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    closeModalDirect();
-    closeTimer();
-    closeDiffRatingPicker();
-    closeNoteInsight();
-  }
-});
+/* (keyboard shortcuts consolidated in DOMContentLoaded init block) */
 
 /* ================================================================
    TIMER
@@ -1857,6 +2152,9 @@ function importProgress(event) {
 function openSyncCode() {
   const body = document.getElementById("synccode-body");
   const uid = typeof getSyncCode === "function" ? getSyncCode() : null;
+
+  // FIX: was showing "Firebase not configured" while sync was still initialising.
+  // Now distinguish between "still connecting" and "truly unconfigured".
   if (uid) {
     body.innerHTML = `
       <div class="modal-section-label">your sync code (click to copy)</div>
@@ -1864,6 +2162,12 @@ function openSyncCode() {
       <div class="synccode-or">── or link this device to another code ──</div>
       <input class="synccode-input" id="synccode-input" placeholder="paste sync code from another device…">
       <button class="sc-btn save" style="width:100%;padding:8px" onclick="applyLinkCode()">link devices</button>`;
+  } else if (typeof syncStatus !== "undefined" && syncStatus !== "offline") {
+    // Sync is enabled and initialising — userId not assigned yet
+    body.innerHTML = `
+      <div style="font-size:13px;color:var(--mid);line-height:1.6;margin-bottom:12px;font-family:var(--mono)">
+        ↻ connecting to sync… open this again in a moment once the status badge turns green.
+      </div>`;
   } else {
     body.innerHTML = `<div style="font-size:13px;color:var(--mid);line-height:1.6;margin-bottom:12px">Firebase not configured. Fill in sync.js config for cross-device sync.</div>`;
   }
@@ -1897,6 +2201,89 @@ function closeSyncCodeOnBg(e) {
   if (e.target === document.getElementById("synccode-overlay")) closeSyncCode();
 }
 
+/* ================================================================
+   GLOBAL SEARCH
+   ================================================================ */
+function openSearch() {
+  document.getElementById("search-overlay").classList.add("open");
+  setTimeout(() => document.getElementById("search-input")?.focus(), 60);
+}
+function closeSearch() {
+  document.getElementById("search-overlay").classList.remove("open");
+  const inp = document.getElementById("search-input");
+  if (inp) inp.value = "";
+  const res = document.getElementById("search-results");
+  if (res) res.innerHTML = "";
+}
+function onSearchInput() {
+  const q = (document.getElementById("search-input")?.value || "")
+    .trim()
+    .toLowerCase();
+  const res = document.getElementById("search-results");
+  if (!res) return;
+  if (!q || q.length < 2) {
+    res.innerHTML = `<div class="search-hint">type to search across all problems…</div>`;
+    return;
+  }
+
+  const all = getAllProblems()
+    .concat(getAllCFProblems())
+    .concat(getAllLCProblems());
+  const c = getCompleted();
+  const hits = all
+    .filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        (p.trigger || "").toLowerCase().includes(q) ||
+        (p.hint || "").toLowerCase().includes(q) ||
+        (p.tags || []).some((t) => t.toLowerCase().includes(q)) ||
+        (
+          p.subtopicTitle ||
+          p.topicTitle ||
+          p.cfTopicTitle ||
+          p.lcTopicTitle ||
+          ""
+        )
+          .toLowerCase()
+          .includes(q),
+    )
+    .slice(0, 30);
+
+  if (!hits.length) {
+    res.innerHTML = `<div class="search-hint">no results for "<b>${escHtml(q)}</b>"</div>`;
+    return;
+  }
+
+  const diffRatings = getDiffRatings();
+  res.innerHTML = hits
+    .map((p) => {
+      const done = !!c[p.id];
+      const topic =
+        p.subtopicTitle ||
+        p.topicTitle ||
+        p.cfTopicTitle ||
+        p.lcTopicTitle ||
+        "";
+      const plat = p.cfTopicId ? "CF" : "LC";
+      const platClass = p.cfTopicId ? "codeforces" : "leetcode";
+      const myR = diffRatings[p.id];
+      const myRHtml = myR
+        ? `<span class="my-diff-badge my-diff-${myR}">${myR}</span>`
+        : "";
+      return `
+      <div class="search-result-row ${done ? "search-done" : ""}" onclick="closeSearch();openModal('${p.id}')">
+        <div class="search-check-dot ${done ? "done" : ""}"></div>
+        <div class="search-result-info">
+          <div class="search-result-name">${escHtml(p.title)}</div>
+          <div class="search-result-meta">${escHtml(topic)}${p.day ? ` · Day ${p.day}` : ""}</div>
+        </div>
+        ${myRHtml}
+        <span class="p-diff diff-${p.difficulty}" style="font-size:10px">${p.difficulty}</span>
+        <span class="p-platform plat-${platClass}" style="font-size:10px;padding:2px 5px">${plat}</span>
+      </div>`;
+    })
+    .join("");
+}
 
 /* ================================================================
    INITIALIZATION
@@ -1907,4 +2294,19 @@ window.addEventListener("DOMContentLoaded", () => {
   updateProgress();
   window._dsaAppReady = true;
   if (typeof initSync === "function") initSync();
+
+  // Keyboard shortcuts: Ctrl/Cmd + K opens search; Escape closes all modals
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      openSearch();
+    }
+    if (e.key === "Escape") {
+      closeSearch();
+      closeModalDirect();
+      closeTimer();
+      closeDiffRatingPicker();
+      closeNoteInsight();
+    }
+  });
 });
