@@ -6,8 +6,70 @@
    ================================================================ */
 
 /* ================================================================
-   STORAGE
+   CUSTOM DIALOGS — replaces all alert / confirm / prompt
    ================================================================ */
+function _dialog(html, onMount) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:16px";
+  overlay.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:24px 24px 20px;max-width:360px;width:100%;box-shadow:0 16px 60px rgba(0,0,0,.6);font-family:var(--sans)">${html}</div>`;
+  document.body.appendChild(overlay);
+  const remove = () => overlay.remove();
+  if (onMount) onMount(overlay.querySelector("div"), remove);
+  return remove;
+}
+
+function showToast(msg, type = "info") {
+  const t = document.createElement("div");
+  const color = type === "error" ? "#c86868" : type === "success" ? "#5a8a6a" : "var(--accent2)";
+  t.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid ${color};color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 18px;border-radius:8px;z-index:9100;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .3s`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.remove(), 320); }, 2400);
+}
+
+function showAlert(msg, type = "info") {
+  _dialog(
+    `<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:18px">${msg}</div>
+     <div style="display:flex;justify-content:flex-end">
+       <button id="dlg-ok" style="background:var(--bg4);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 20px;border-radius:6px;cursor:pointer">ok</button>
+     </div>`,
+    (box, remove) => { box.querySelector("#dlg-ok").onclick = remove; }
+  );
+}
+
+function showConfirm(msg, onYes) {
+  _dialog(
+    `<div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:18px">${msg}</div>
+     <div style="display:flex;gap:8px;justify-content:flex-end">
+       <button id="dlg-no"  style="background:none;border:1px solid var(--line2);color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer">cancel</button>
+       <button id="dlg-yes" style="background:#2a1414;border:1px solid #7a3a3a;color:#c86868;font-family:var(--mono);font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer">delete</button>
+     </div>`,
+    (box, remove) => {
+      box.querySelector("#dlg-no").onclick = remove;
+      box.querySelector("#dlg-yes").onclick = () => { remove(); onYes(); };
+    }
+  );
+}
+
+function showPrompt(msg, placeholder, defaultVal, onSubmit) {
+  _dialog(
+    `<div style="font-size:13px;color:var(--text);margin-bottom:12px">${msg}</div>
+     <input id="dlg-input" style="width:100%;background:var(--bg3);border:1px solid var(--line2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;outline:none;box-sizing:border-box" placeholder="${placeholder}" value="${defaultVal || ""}" />
+     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+       <button id="dlg-cancel" style="background:none;border:1px solid var(--line2);color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer">cancel</button>
+       <button id="dlg-ok" style="background:var(--bg4);border:1px solid var(--accent2);color:var(--accent);font-family:var(--mono);font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer">ok</button>
+     </div>`,
+    (box, remove) => {
+      const inp = box.querySelector("#dlg-input");
+      setTimeout(() => inp.focus(), 50);
+      const submit = () => { remove(); onSubmit(inp.value); };
+      box.querySelector("#dlg-cancel").onclick = remove;
+      box.querySelector("#dlg-ok").onclick = submit;
+      inp.onkeydown = (e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") remove(); };
+    }
+  );
+}
+
 const DB = {
   get: (k) => {
     try {
@@ -784,12 +846,10 @@ function buildWeeklyGoalWidget() {
 
 function promptWeeklyGoal() {
   const current = getWeeklyGoal();
-  const val = prompt(`Set weekly problem goal (current: ${current}):`, current);
-  const n = parseInt(val);
-  if (n > 0) {
-    setWeeklyGoal(n);
-    buildWeeklyGoalWidget();
-  }
+  showPrompt("Set weekly problem goal:", current, current, (val) => {
+    const n = parseInt(val);
+    if (n > 0) { setWeeklyGoal(n); buildWeeklyGoalWidget(); }
+  });
 }
 
 function renderDashDayProblems(day, probs) {
@@ -1448,7 +1508,7 @@ function addNote() {
 }
 
 function deleteNote(i) {
-  if (confirm("Delete this note?")) {
+  showConfirm("Delete this note? This can't be undone.", () => {
     const n = getGlobalNotes();
     n.splice(i, 1);
     setGlobalNotes(n);
@@ -1457,29 +1517,32 @@ function deleteNote(i) {
     if (_editingNote === i) _editingNote = null;
     else if (_editingNote !== null && _editingNote > i) _editingNote--;
     buildNotes();
-  }
+  });
 }
 
 function addInlineNoteLink(i) {
-  const url = prompt("Enter URL:");
-  if (!url) return;
-  const label = prompt("Label (optional):", url) || url;
-  const n = getGlobalNotes();
-  if (!n[i].links) n[i].links = [];
-  n[i].links.push({ url, label });
-  setGlobalNotes(n);
-  const listEl = document.getElementById(`nei-links-list-${i}`);
-  if (listEl) {
-    listEl.innerHTML = n[i].links
-      .map(
-        (l, li) =>
-          `<div class="note-link-item">
-        <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
-        <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${li})">✕</button>
-      </div>`,
-      )
-      .join("");
-  }
+  showPrompt("Enter URL:", "https://...", "", (url) => {
+    if (!url) return;
+    showPrompt("Label (optional):", url, url, (label) => {
+      label = label || url;
+      const n = getGlobalNotes();
+      if (!n[i].links) n[i].links = [];
+      n[i].links.push({ url, label });
+      setGlobalNotes(n);
+      const listEl = document.getElementById(`nei-links-list-${i}`);
+      if (listEl) {
+        listEl.innerHTML = n[i].links
+          .map(
+            (l, li) =>
+              `<div class="note-link-item">
+            <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
+            <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${li})">✕</button>
+          </div>`,
+          )
+          .join("");
+      }
+    });
+  });
 }
 
 function removeInlineNoteLink(i, li) {
@@ -2027,12 +2090,9 @@ function startTimer() {
       document.getElementById("timer-start-btn").textContent = "start";
       document.getElementById("timer-display").textContent = "00:00";
       if (Notification.permission === "granted") {
-        new Notification("Time is up!", {
-          body: "Your session ended. Did you solve it?",
-        });
-      } else {
-        alert("Time is up! Your session has ended.");
+        new Notification("Time is up!", { body: "Your session ended. Did you solve it?" });
       }
+      showToast("⏱ time's up! session ended.", "info");
     }
   }, 1000);
 }
@@ -2138,11 +2198,11 @@ function importProgress(event) {
       if (data.pattern_logs) DB.set("pattern_logs", data.pattern_logs);
       if (data.diff_ratings) DB.set("diff_ratings", data.diff_ratings);
       if (data.saved_code) DB.set("saved_code", data.saved_code);
-      alert("Progress imported successfully!");
+      showToast("progress imported successfully.", "success");
       buildDashboard();
       updateProgress();
     } catch (e) {
-      alert("Invalid file. Make sure you exported from this tracker.");
+      showToast("invalid file — make sure you exported from this tracker.", "error");
     }
   };
   reader.readAsText(file);
@@ -2188,8 +2248,8 @@ async function applyLinkCode() {
   if (!input || !input.value.trim()) return;
   const ok = await linkSyncCode(input.value.trim());
   if (ok) {
-    alert("Devices linked! Your progress will sync shortly.");
     closeSyncCode();
+    showToast("devices linked — syncing shortly.", "success");
   }
 }
 

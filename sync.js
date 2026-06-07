@@ -131,17 +131,19 @@ function syncAfterChange() {
 async function initSync() {
   if (!SYNC_ENABLED) { emitStatus("offline"); return; }
   try {
-    const { initializeApp } =
+    const { initializeApp, getApps } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
     const { getFirestore, doc, setDoc, onSnapshot } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
     const { getAuth, signInAnonymously, onAuthStateChanged } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
 
-    const app = initializeApp(FIREBASE_CONFIG);
+    // Avoid "app already exists" error on hot reloads
+    const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
     db = getFirestore(app);
     const auth = getAuth(app);
 
+    emitStatus("syncing");
     await signInAnonymously(auth);
 
     onAuthStateChanged(auth, async user => {
@@ -150,9 +152,6 @@ async function initSync() {
       localStorage.setItem("dsa_sync_uid", uid);
       userId = uid;
 
-      // Wait for the first snapshot to merge remote→local, THEN push the
-      // unified result up. This prevents the startup push from overwriting
-      // data that was saved on another device.
       _subscribe(doc, onSnapshot, () => _doPush(doc, setDoc));
     });
   } catch (e) {
