@@ -78,17 +78,20 @@ function _mergeData(local, remote) {
 }
 
 // ─── Snapshot subscription (with cleanup) ────────────────────────────────────
-function _subscribe(docFn, onSnapshotFn) {
-  // FIX: always unsubscribe previous listener before adding a new one
+// onFirstSync: optional callback fired after the first snapshot is processed
+function _subscribe(docFn, onSnapshotFn, onFirstSync) {
   if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
 
+  let firstSnap = true;
   const ref = docFn(db, "users", userId);
   _unsubSnapshot = onSnapshotFn(ref, snap => {
-    if (!snap.exists()) return;
-    const merged = _mergeData(_getLocalData(), snap.data());
-    _saveLocalData(merged);
-    emitStatus("synced");
-    if (window._dsaAppReady) { buildDashboard(); updateProgress(); }
+    if (snap.exists()) {
+      const merged = _mergeData(_getLocalData(), snap.data());
+      _saveLocalData(merged);
+      emitStatus("synced");
+      if (window._dsaAppReady) { buildDashboard(); updateProgress(); }
+    }
+    if (firstSnap) { firstSnap = false; onFirstSync?.(); }
   });
 }
 
@@ -147,9 +150,10 @@ async function initSync() {
       localStorage.setItem("dsa_sync_uid", uid);
       userId = uid;
 
-      _subscribe(doc, onSnapshot);
-      await _doPush(doc, setDoc);
-      emitStatus("synced");
+      // Wait for the first snapshot to merge remote→local, THEN push the
+      // unified result up. This prevents the startup push from overwriting
+      // data that was saved on another device.
+      _subscribe(doc, onSnapshot, () => _doPush(doc, setDoc));
     });
   } catch (e) {
     console.error("Sync init failed:", e);
@@ -169,14 +173,9 @@ async function linkSyncCode(code) {
     const { doc, onSnapshot, setDoc } =
       await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
-    // Subscribe first so we receive the remote data and merge it locally
-    _subscribe(doc, onSnapshot);
-
-    // FIX: was calling pushToCloud() immediately, which OVERWROTE the target
-    //      device's Firestore document with this device's (possibly empty) data.
-    //      Now we wait 3 s so the onSnapshot has time to pull & merge remote data
-    //      before we push the unified result back up.
-    setTimeout(() => pushToCloud(), 3000);
+    // Subscribe and only push AFTER the first snapshot has been pulled and
+    // merged locally — no race condition, no arbitrary timeout.
+    _subscribe(doc, onSnapshot, () => pushToCloud());
   } catch (e) {
     console.error("linkSyncCode failed:", e);
     return false;

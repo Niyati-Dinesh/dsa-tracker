@@ -294,42 +294,39 @@ function buildMobDrawerContent() {
   const c = document.getElementById("mob-drawer-content");
   if (!c) return;
   c.innerHTML = "";
-  c.innerHTML += `<div class="mob-drawer-section" style="color:#e8a838;">DSA Topics</div>`;
-  c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('leetcode')"><span class="mob-drawer-icon" style="color:#e8a838">❖</span>LeetCode Platform</div>`;
+
+  const addSection = (text, color) => {
+    const s = document.createElement("div");
+    s.className = "mob-drawer-section";
+    s.style.color = color;
+    s.textContent = text;
+    c.appendChild(s);
+  };
+
+  const addItem = (iconHtml, label, onClick) => {
+    const el = document.createElement("div");
+    el.className = "mob-drawer-item";
+    el.innerHTML = `<span class="mob-drawer-icon">${iconHtml}</span>${label}`;
+    el.onclick = onClick;
+    c.appendChild(el);
+  };
+
+  addSection("DSA Topics", "#e8a838");
+  addItem(`<span style="color:#e8a838">❖</span>`, "LeetCode Platform", () => { closeMobDrawer(); showView("leetcode"); });
   if (DSA_DATA.leetcode) {
     DSA_DATA.leetcode.topics.forEach((t) => {
-      const el = document.createElement("div");
-      el.className = "mob-drawer-item";
-      el.innerHTML = `<span class="mob-drawer-icon" style="color:#e8a838">↳</span>${t.title}`;
-      el.onclick = () => {
-        closeMobDrawer();
-        showLCTopic(t.id);
-      };
-      c.appendChild(el);
+      addItem(`<span style="color:#e8a838">↳</span>`, t.title, () => { closeMobDrawer(); showLCTopic(t.id); });
     });
   }
   DSA_DATA.topics.forEach((t) => {
-    const el = document.createElement("div");
-    el.className = "mob-drawer-item";
-    el.innerHTML = `<span class="mob-drawer-icon" style="color:#e8a838">${t.icon}</span>${t.title}`;
-    el.onclick = () => {
-      closeMobDrawer();
-      showTopic(t.id);
-    };
-    c.appendChild(el);
+    addItem(`<span style="color:#e8a838">${t.icon}</span>`, t.title, () => { closeMobDrawer(); showTopic(t.id); });
   });
-  c.innerHTML += `<div class="mob-drawer-section" style="color:#6a7acc; margin-top:16px;">Competitive Programming</div>`;
-  c.innerHTML += `<div class="mob-drawer-item" onclick="closeMobDrawer(); showView('codeforces')"><span class="mob-drawer-icon" style="color:#6a7acc">⬡</span>Codeforces Platform</div>`;
+
+  addSection("Competitive Programming", "#6a7acc");
+  addItem(`<span style="color:#6a7acc">⬡</span>`, "Codeforces Platform", () => { closeMobDrawer(); showView("codeforces"); });
   if (DSA_DATA.codeforces) {
     DSA_DATA.codeforces.topics.forEach((t) => {
-      const el = document.createElement("div");
-      el.className = "mob-drawer-item";
-      el.innerHTML = `<span class="mob-drawer-icon" style="color:#6a7acc">${t.icon}</span>${t.title}`;
-      el.onclick = () => {
-        closeMobDrawer();
-        showCFTopic(t.id);
-      };
-      c.appendChild(el);
+      addItem(`<span style="color:#6a7acc">${t.icon}</span>`, t.title, () => { closeMobDrawer(); showCFTopic(t.id); });
     });
   }
 }
@@ -412,8 +409,8 @@ function showLCTopic(topicId) {
   document.getElementById("view-leetcode").classList.add("active");
   const navEl = document.getElementById("nav-lcsub-" + topicId);
   if (navEl) navEl.classList.add("active");
-  buildPlatformTopicView("leetcode", topicId);
   document.getElementById("main").scrollTop = 0;
+  buildPlatformTopicView("leetcode", topicId);
 }
 
 function mobTab(name) {
@@ -1687,8 +1684,10 @@ function buildPlatformDashboard(platform) {
       </div>
       <div class="platform-card-desc">${t.description}</div>
       <div class="platform-card-meta">${tSolved} / ${tTotal} Solved · ${t.subtopics.length} Sections</div>`;
-    card.onclick = () =>
+    const handler = () =>
       platform === "codeforces" ? showCFTopic(t.id) : showLCTopic(t.id);
+    card.onclick = handler;
+    card.style.cursor = "pointer";
     grid.appendChild(card);
   });
 }
