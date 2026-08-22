@@ -590,7 +590,7 @@ function saveCSTopicModal(subjectId) {
   const cat = document.getElementById("cs-topic-input-cat")?.value.trim() || "General";
 
   if (!name) {
-    alert("Please enter a topic name.");
+    showAlert("Please enter a topic name.");
     return;
   }
 
@@ -665,7 +665,7 @@ function saveCSQuestionModal(topicId, isSD = false) {
   const freq = document.getElementById("cs-modal-q-freq")?.value || "medium";
 
   if (!text) {
-    alert("Please enter question text.");
+    showAlert("Please enter question text.");
     return;
   }
 

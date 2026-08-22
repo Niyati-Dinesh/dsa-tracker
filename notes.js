@@ -710,11 +710,12 @@ function toggleNoteReminderStatus(noteId) {
 }
 
 function deleteNoteById(noteId) {
-  if (!confirm("Delete this note?")) return;
-  let notes = getNormalizedGlobalNotes();
-  notes = notes.filter(n => n.id !== noteId);
-  saveNormalizedGlobalNotes(notes);
-  buildNotes();
+  showConfirm("Delete this note?", () => {
+    let notes = getNormalizedGlobalNotes();
+    notes = notes.filter(n => n.id !== noteId);
+    saveNormalizedGlobalNotes(notes);
+    buildNotes();
+  });
 }
 
 function closeNoteModalOnBackdrop(e) {

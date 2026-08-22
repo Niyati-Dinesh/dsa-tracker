@@ -307,12 +307,13 @@ function toggleArchiveResearch(id) {
 }
 
 function deleteResearchEntry(id) {
-  if (!confirm("Are you sure you want to delete this research paper entry?")) return;
-  let papers = getResearchPapers();
-  papers = papers.filter(p => p.id !== id);
-  DB.set("research_papers", papers);
-  if (typeof syncAfterChange === "function") syncAfterChange();
-  renderResearchTableRows();
+  showConfirm("Are you sure you want to delete this research paper entry?", () => {
+    let papers = getResearchPapers();
+    papers = papers.filter(p => p.id !== id);
+    DB.set("research_papers", papers);
+    if (typeof syncAfterChange === "function") syncAfterChange();
+    renderResearchTableRows();
+  });
 }
 
 function openAddResearchModal(editingPaper = null) {
@@ -463,7 +464,7 @@ function saveResearchModal() {
   const tagsStr = document.getElementById("res-input-tags")?.value.trim() || "";
 
   if (!title) {
-    alert("Please provide a paper title.");
+    showAlert("Please provide a paper title.");
     return;
   }
 

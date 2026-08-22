@@ -923,7 +923,7 @@ function saveApplicationModal() {
   const role = document.getElementById("modal-app-role")?.value.trim();
 
   if (!company || !role) {
-    alert("Please specify both company and role.");
+    showAlert("Please specify both company and role.");
     return;
   }
 
@@ -1034,11 +1034,12 @@ function toggleArchiveApplication(appId) {
 }
 
 function deleteApplicationById(appId) {
-  if (!confirm("Delete this application permanently?")) return;
-  let apps = getApplications();
-  apps = apps.filter(a => a.id !== appId);
-  saveApplications(apps);
-  buildApplicationsView();
+  showConfirm("Delete this application permanently?", () => {
+    let apps = getApplications();
+    apps = apps.filter(a => a.id !== appId);
+    saveApplications(apps);
+    buildApplicationsView();
+  });
 }
 
 function closeAppModalOnBackdrop(e) {
@@ -1144,7 +1145,7 @@ function addNewCustomField() {
   const options = document.getElementById("new-cf-options")?.value.trim() || "";
 
   if (!name) {
-    alert("Please enter a field label.");
+    showAlert("Please enter a field label.");
     return;
   }
 
@@ -1182,12 +1183,13 @@ function moveCustomField(fieldId, direction) {
 }
 
 function deleteCustomFieldById(fieldId) {
-  if (!confirm("Remove this custom field? Existing data in this column will be hidden.")) return;
-  let fields = getApplicationCustomFields();
-  fields = fields.filter(f => f.id !== fieldId);
-  saveApplicationCustomFields(fields);
-  openCustomFieldsManagerModal();
-  buildApplicationsView();
+  showConfirm("Remove this custom field? Existing data in this column will be hidden.", () => {
+    let fields = getApplicationCustomFields();
+    fields = fields.filter(f => f.id !== fieldId);
+    saveApplicationCustomFields(fields);
+    openCustomFieldsManagerModal();
+    buildApplicationsView();
+  });
 }
 
 function closeCfModalOnBackdrop(e) {

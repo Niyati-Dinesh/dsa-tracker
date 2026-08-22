@@ -738,7 +738,7 @@ function launchAptitudeSession() {
   });
 
   if (!filtered.length) {
-    alert("No questions matched your selected filter criteria. Try expanding difficulty or scope.");
+    showAlert("No questions matched your selected filter criteria. Try expanding difficulty or scope.");
     return;
   }
 
@@ -885,7 +885,7 @@ function submitAptOption(isTimeout = false) {
 
   const q = s.questions[s.currentIndex];
   if (selectedOptionIndex === null && !isTimeout) {
-    alert("Please select an answer choice before submitting.");
+    showAlert("Please select an answer choice before submitting.");
     return;
   }
 
@@ -1019,9 +1019,9 @@ function finishAptitudeSession() {
 }
 
 function endAptitudeSessionEarly() {
-  if (confirm("Are you sure you want to end this practice session early? Your progress so far will be saved.")) {
+  showConfirm("Are you sure you want to end this practice session early? Your progress so far will be saved.", () => {
     finishAptitudeSession();
-  }
+  });
 }
 
 /* ================================================================
@@ -1561,7 +1561,7 @@ function saveAptitudeQuestion() {
   const explanation = document.getElementById("apt-input-explanation")?.value?.trim();
 
   if (!question || !opt0 || !opt1 || !correct) {
-    alert("Please fill in the question text, options, and correct answer.");
+    showAlert("Please fill in the question text, options, and correct answer.");
     return;
   }
 
@@ -1615,12 +1615,13 @@ function duplicateAptitudeQuestion(id) {
 }
 
 function deleteAptitudeQuestion(id) {
-  if (!confirm("Are you sure you want to delete this custom question?")) return;
-  let customQs = DB.get("aptitude_qs") || [];
-  customQs = customQs.filter(q => q.id !== id);
-  DB.set("aptitude_qs", customQs);
-  if (typeof syncAfterChange === "function") syncAfterChange();
-  renderAptitudeQuestionManager();
+  showConfirm("Are you sure you want to delete this custom question?", () => {
+    let customQs = DB.get("aptitude_qs") || [];
+    customQs = customQs.filter(q => q.id !== id);
+    DB.set("aptitude_qs", customQs);
+    if (typeof syncAfterChange === "function") syncAfterChange();
+    renderAptitudeQuestionManager();
+  });
 }
 
 /* ── Modal Utility Helpers ── */

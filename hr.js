@@ -483,9 +483,9 @@ function copyStarStory(storyId) {
   const formatted = `=== ${s.title} ===\n\n[SITUATION]\n${s.situation}\n\n[TASK]\n${s.task}\n\n[ACTION]\n${s.action}\n\n[RESULT]\n${s.result}\n\n[COMPETENCIES]: ${(s.competencies || []).join(", ")}\n[COMPANIES]: ${(s.companies || []).join(", ")}`;
 
   navigator.clipboard.writeText(formatted).then(() => {
-    alert("STAR story formatted summary copied to clipboard!");
+    showToast("STAR story formatted summary copied to clipboard!", "success");
   }).catch(() => {
-    alert("Copied!");
+    showToast("Copied!", "success");
   });
 }
 
@@ -621,7 +621,7 @@ function saveHRQuestionModal() {
   const notes = document.getElementById("hr-modal-notes")?.value.trim();
 
   if (!qtext) {
-    alert("Please enter question text.");
+    showAlert("Please enter question text.");
     return;
   }
 
@@ -659,12 +659,13 @@ function editHRQuestion(qId) {
 }
 
 function deleteHRQuestion(qId) {
-  if (!confirm("Are you sure you want to delete this custom HR question?")) return;
-  let custom = getHRCustomQuestions();
-  custom = custom.filter(q => q.id !== qId);
-  DB.set("hr_custom_qs", custom);
-  if (typeof syncAfterChange === "function") syncAfterChange();
-  renderHRQuestions();
+  showConfirm("Are you sure you want to delete this custom HR question?", () => {
+    let custom = getHRCustomQuestions();
+    custom = custom.filter(q => q.id !== qId);
+    DB.set("hr_custom_qs", custom);
+    if (typeof syncAfterChange === "function") syncAfterChange();
+    renderHRQuestions();
+  });
 }
 
 function openAddStarStoryModal(editingStory = null) {
@@ -757,7 +758,7 @@ function saveStarStoryModal() {
   const notes = document.getElementById("star-modal-notes")?.value.trim();
 
   if (!title) {
-    alert("Please provide a story title.");
+    showAlert("Please provide a story title.");
     return;
   }
 
@@ -808,12 +809,13 @@ function editStarStory(storyId) {
 }
 
 function deleteStarStory(storyId) {
-  if (!confirm("Are you sure you want to delete this STAR story?")) return;
-  let stories = getStarStories();
-  stories = stories.filter(s => s.id !== storyId);
-  DB.set("star_stories", stories);
-  if (typeof syncAfterChange === "function") syncAfterChange();
-  renderStarStories();
+  showConfirm("Are you sure you want to delete this STAR story?", () => {
+    let stories = getStarStories();
+    stories = stories.filter(s => s.id !== storyId);
+    DB.set("star_stories", stories);
+    if (typeof syncAfterChange === "function") syncAfterChange();
+    renderStarStories();
+  });
 }
 
 function closeHRModal(e, id) {
