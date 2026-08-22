@@ -43,67 +43,72 @@ function buildResearchView() {
           <div class="res-title">research tracker</div>
           <div class="res-subtitle">A lightweight, spreadsheet-like database for literature review, methodology analysis, and research gaps.</div>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="res-header-actions">
           <button class="hr-btn" onclick="exportResearchJSON()" title="Export Research JSON">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Export</span>
           </button>
           <button class="hr-btn hr-btn-primary" onclick="openAddResearchModal()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>Add Research Paper</span>
+            <span>Add Paper</span>
           </button>
         </div>
       </div>
 
       <!-- Quick Metrics -->
-      <div class="hr-stats-grid">
-        <div class="hr-stat-card">
-          <div class="hr-stat-num">${papers.length}</div>
-          <div class="hr-stat-label">Total Tracked</div>
+      <div class="res-stats-grid">
+        <div class="res-stat-card">
+          <div class="res-stat-num">${papers.length}</div>
+          <div class="res-stat-label">Total Tracked</div>
         </div>
-        <div class="hr-stat-card">
-          <div class="hr-stat-num" style="color:#4ade80">${readCount}</div>
-          <div class="hr-stat-label">Read / Synthesized</div>
+        <div class="res-stat-card">
+          <div class="res-stat-num" style="color:#4ade80">${readCount}</div>
+          <div class="res-stat-label">Read / Synthesized</div>
         </div>
-        <div class="hr-stat-card">
-          <div class="hr-stat-num" style="color:#38bdf8">${activePapers.filter(p => p.status === 'Reading').length}</div>
-          <div class="hr-stat-label">Currently Reading</div>
+        <div class="res-stat-card">
+          <div class="res-stat-num" style="color:#38bdf8">${activePapers.filter(p => p.status === 'Reading').length}</div>
+          <div class="res-stat-label">Currently Reading</div>
         </div>
-        <div class="hr-stat-card">
-          <div class="hr-stat-num" style="color:#f87171">${activePapers.filter(p => p.priority === 'High').length}</div>
-          <div class="hr-stat-label">High Priority</div>
+        <div class="res-stat-card">
+          <div class="res-stat-num" style="color:#f87171">${activePapers.filter(p => p.priority === 'High').length}</div>
+          <div class="res-stat-label">High Priority</div>
         </div>
       </div>
 
       <!-- Toolbar -->
       <div class="res-toolbar">
         <div class="res-toolbar-left">
-          <input type="text" class="hr-search-input" id="res-search" placeholder="Search title, authors, findings, methodology, tags..." oninput="filterResearchTable()">
-          <select class="hr-select" id="res-area-filter" onchange="filterResearchTable()">
-            ${areaOptions}
-          </select>
-          <select class="hr-select" id="res-status-filter" onchange="filterResearchTable()">
-            <option value="all">All Statuses</option>
-            <option value="To Read">To Read</option>
-            <option value="Reading">Reading</option>
-            <option value="Read">Read</option>
-            <option value="Summarized">Summarized</option>
-            <option value="Implemented">Implemented</option>
-          </select>
-          <select class="hr-select" id="res-prio-filter" onchange="filterResearchTable()">
-            <option value="all">All Priorities</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mid);cursor:pointer;user-select:none">
-            <input type="checkbox" id="res-show-archived" onchange="filterResearchTable()"> Show Archived
-          </label>
+          <div class="res-search-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="hr-search-input" id="res-search" placeholder="Search title, authors, findings, methodology, tags..." oninput="filterResearchTable()">
+          </div>
+          <div class="res-filter-row">
+            <select class="hr-select" id="res-area-filter" onchange="filterResearchTable()">
+              ${areaOptions}
+            </select>
+            <select class="hr-select" id="res-status-filter" onchange="filterResearchTable()">
+              <option value="all">All Statuses</option>
+              <option value="To Read">To Read</option>
+              <option value="Reading">Reading</option>
+              <option value="Read">Read</option>
+              <option value="Summarized">Summarized</option>
+              <option value="Implemented">Implemented</option>
+            </select>
+            <select class="hr-select" id="res-prio-filter" onchange="filterResearchTable()">
+              <option value="all">All Priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <label class="res-archived-label">
+              <input type="checkbox" id="res-show-archived" onchange="filterResearchTable()"> Show Archived
+            </label>
+          </div>
         </div>
       </div>
 
-      <!-- Table Container -->
-      <div class="res-table-wrapper">
+      <!-- Desktop Table View -->
+      <div class="res-table-wrapper res-desktop-view">
         <table class="res-table">
           <thead>
             <tr>
@@ -120,6 +125,9 @@ function buildResearchView() {
           <tbody id="res-table-body"></tbody>
         </table>
       </div>
+
+      <!-- Mobile Cards View -->
+      <div class="res-mobile-view" id="res-mobile-list"></div>
     </div>
   `;
 
@@ -128,7 +136,8 @@ function buildResearchView() {
 
 function renderResearchTableRows() {
   const tbody = document.getElementById("res-table-body");
-  if (!tbody) return;
+  const mobileList = document.getElementById("res-mobile-list");
+  if (!tbody && !mobileList) return;
 
   const query = (document.getElementById("res-search")?.value || "").toLowerCase().trim();
   const areaFilter = document.getElementById("res-area-filter")?.value || "all";
@@ -171,17 +180,62 @@ function renderResearchTableRows() {
   });
 
   if (!papers.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="padding:36px;text-align:center;color:var(--muted)">No research entries found matching criteria.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="padding:36px;text-align:center;color:var(--muted)">No research entries found matching criteria.</td></tr>`;
+    if (mobileList) mobileList.innerHTML = `<div class="res-empty-mobile">No research entries found matching criteria.</div>`;
     return;
   }
 
-  let html = "";
+  let tableHtml = "";
+  let mobileHtml = "";
+
   papers.forEach(p => {
     const isExpanded = expandedResId === p.id;
     const statusClass = `res-status-${(p.status || 'To Read').replace(/\s+/g, '-')}`;
     const prioClass = `res-prio-${p.priority || 'Medium'}`;
 
-    html += `
+    const customPairs = Object.entries(p.custom_fields || {}).map(([k, v]) => `
+      <div class="res-drawer-block">
+        <div class="res-drawer-label">${escHtml(k)}</div>
+        <div class="res-drawer-text">${escHtml(v)}</div>
+      </div>
+    `).join("");
+
+    const drawerContent = `
+      <div class="res-drawer-grid">
+        <div class="res-drawer-block">
+          <div class="res-drawer-label">Methodology &amp; Architecture</div>
+          <div class="res-drawer-text">${escHtml(p.methodology || "—")}</div>
+          ${p.model ? `<div style="margin-top:6px;font-size:11.5px;color:var(--mid)"><strong>Model:</strong> ${escHtml(p.model)}</div>` : ''}
+          ${p.dataset ? `<div style="margin-top:2px;font-size:11.5px;color:var(--mid)"><strong>Dataset:</strong> ${escHtml(p.dataset)}</div>` : ''}
+        </div>
+
+        <div class="res-drawer-block">
+          <div class="res-drawer-label">Key Findings &amp; Contributions</div>
+          <div class="res-drawer-text">${escHtml(p.key_findings || "—")}</div>
+        </div>
+
+        <div class="res-drawer-block">
+          <div class="res-drawer-label">Limitations &amp; Research Gap</div>
+          <div class="res-drawer-text">${escHtml(p.limitations || "—")}</div>
+          ${p.research_gap ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--star-gold, #fbbf24)"><strong>Gap:</strong> ${escHtml(p.research_gap)}</div>` : ''}
+        </div>
+
+        <div class="res-drawer-block">
+          <div class="res-drawer-label">Ideas &amp; Notes</div>
+          <div class="res-drawer-text">${escHtml(p.useful_notes || p.ideas || "—")}</div>
+          ${p.recommendations ? `<div style="margin-top:6px;font-size:11.5px;color:var(--mid)"><strong>Rec:</strong> ${escHtml(p.recommendations)}</div>` : ''}
+        </div>
+
+        ${customPairs}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px">
+        ${(p.tags || []).map(t => `<span class="hr-pill" style="color:var(--res-cyan);border-color:var(--res-cyan-border)">#${escHtml(t)}</span>`).join("")}
+      </div>
+    `;
+
+    // 1. Desktop Table Row
+    tableHtml += `
       <tr class="${p.archived ? 'archived' : ''}">
         <td>
           <button class="hr-btn" style="padding:2px 5px;font-size:10px" onclick="toggleResDrawer('${p.id}')" title="Expand Details">
@@ -225,56 +279,74 @@ function renderResearchTableRows() {
     `;
 
     if (isExpanded) {
-      const customPairs = Object.entries(p.custom_fields || {}).map(([k, v]) => `
-        <div class="res-drawer-block">
-          <div class="res-drawer-label">${escHtml(k)}</div>
-          <div class="res-drawer-text">${escHtml(v)}</div>
-        </div>
-      `).join("");
-
-      html += `
+      tableHtml += `
         <tr>
           <td colspan="8" style="padding:0">
             <div class="res-drawer">
-              <div class="res-drawer-grid">
-                <div class="res-drawer-block">
-                  <div class="res-drawer-label">Methodology &amp; Architecture</div>
-                  <div class="res-drawer-text">${escHtml(p.methodology || "—")}</div>
-                  ${p.model ? `<div style="margin-top:6px;font-size:11.5px;color:var(--mid)"><strong>Model:</strong> ${escHtml(p.model)}</div>` : ''}
-                  ${p.dataset ? `<div style="margin-top:2px;font-size:11.5px;color:var(--mid)"><strong>Dataset:</strong> ${escHtml(p.dataset)}</div>` : ''}
-                </div>
-
-                <div class="res-drawer-block">
-                  <div class="res-drawer-label">Key Findings &amp; Contributions</div>
-                  <div class="res-drawer-text">${escHtml(p.key_findings || "—")}</div>
-                </div>
-
-                <div class="res-drawer-block">
-                  <div class="res-drawer-label">Limitations &amp; Research Gap</div>
-                  <div class="res-drawer-text">${escHtml(p.limitations || "—")}</div>
-                  ${p.research_gap ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--star-gold)"><strong>Gap:</strong> ${escHtml(p.research_gap)}</div>` : ''}
-                </div>
-
-                <div class="res-drawer-block">
-                  <div class="res-drawer-label">Ideas &amp; Notes</div>
-                  <div class="res-drawer-text">${escHtml(p.useful_notes || p.ideas || "—")}</div>
-                  ${p.recommendations ? `<div style="margin-top:6px;font-size:11.5px;color:var(--mid)"><strong>Rec:</strong> ${escHtml(p.recommendations)}</div>` : ''}
-                </div>
-
-                ${customPairs}
-              </div>
-
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px">
-                ${(p.tags || []).map(t => `<span class="hr-pill" style="color:var(--res-cyan);border-color:var(--res-cyan-border)">#${escHtml(t)}</span>`).join("")}
-              </div>
+              ${drawerContent}
             </div>
           </td>
         </tr>
       `;
     }
+
+    // 2. Mobile Card Row
+    mobileHtml += `
+      <div class="res-mobile-card ${p.archived ? 'archived' : ''}">
+        <div class="res-mobile-card-header" onclick="toggleResDrawer('${p.id}')">
+          <div class="res-mobile-card-top">
+            <span class="res-badge ${statusClass}">${escHtml(p.status || "To Read")}</span>
+            <div class="res-mobile-card-top-right">
+              <span class="${prioClass}" style="font-size:11px">${escHtml(p.priority || "Medium")}</span>
+              <button class="hr-btn res-mobile-expand-btn" title="Expand">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:${isExpanded ? 'rotate(90deg)' : 'none'};transition:transform 0.15s"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="res-mobile-card-title">${escHtml(p.title)}</div>
+          <div class="res-mobile-card-authors">${escHtml(p.authors || "Unknown Authors")}</div>
+
+          <div class="res-mobile-card-pills">
+            <span class="hr-pill">${escHtml(p.area || "General")}</span>
+            <span class="res-pill-type">${escHtml(p.type || "Paper")}</span>
+            ${p.source ? `<span class="res-pill-venue">${escHtml(p.source)}</span>` : ''}
+          </div>
+        </div>
+
+        <div class="res-mobile-card-footer">
+          ${p.url ? `
+            <a href="${escHtml(p.url)}" target="_blank" rel="noopener noreferrer" class="res-mobile-link">
+              <span>Open Paper</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            </a>
+          ` : `<span></span>`}
+
+          <div class="res-mobile-actions">
+            <button class="hr-btn" style="padding:4px 9px;font-size:11px" onclick="editResearchEntry('${p.id}')" title="Edit">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>Edit</span>
+            </button>
+            <button class="hr-btn" style="padding:4px 9px;font-size:11px;color:${p.archived ? 'var(--res-cyan)' : 'var(--muted)'}" onclick="toggleArchiveResearch('${p.id}')" title="${p.archived ? 'Unarchive' : 'Archive'}">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+            </button>
+            <button class="hr-btn" style="padding:4px 9px;font-size:11px;color:#f87171" onclick="deleteResearchEntry('${p.id}')" title="Delete">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        ${isExpanded ? `
+          <div class="res-drawer res-drawer-mobile">
+            ${drawerContent}
+          </div>
+        ` : ''}
+      </div>
+    `;
   });
 
-  tbody.innerHTML = html;
+  if (tbody) tbody.innerHTML = tableHtml;
+  if (mobileList) mobileList.innerHTML = mobileHtml;
 }
 
 function filterResearchTable() {
@@ -335,7 +407,7 @@ function openAddResearchModal(editingPaper = null) {
             <input type="text" class="hr-search-input" id="res-input-title" style="width:100%" placeholder="e.g. Attention Is All You Need" value="${editingPaper ? escHtml(editingPaper.title || '') : ''}">
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="res-modal-grid-2">
             <div>
               <label class="modal-section-label">Research Area</label>
               <input type="text" class="hr-search-input" id="res-input-area" style="width:100%" placeholder="e.g. Distributed Systems, NLP, Vision" value="${editingPaper ? escHtml(editingPaper.area || '') : ''}">
@@ -352,7 +424,7 @@ function openAddResearchModal(editingPaper = null) {
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="res-modal-grid-2">
             <div>
               <label class="modal-section-label">Authors</label>
               <input type="text" class="hr-search-input" id="res-input-authors" style="width:100%" placeholder="e.g. Vaswani et al." value="${editingPaper ? escHtml(editingPaper.authors || '') : ''}">
@@ -363,7 +435,7 @@ function openAddResearchModal(editingPaper = null) {
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="res-modal-grid-2">
             <div>
               <label class="modal-section-label">Reading Status</label>
               <select class="hr-select" id="res-input-status" style="width:100%">
@@ -389,7 +461,7 @@ function openAddResearchModal(editingPaper = null) {
             <input type="text" class="hr-search-input" id="res-input-url" style="width:100%" placeholder="https://arxiv.org/abs/..." value="${editingPaper ? escHtml(editingPaper.url || '') : ''}">
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="res-modal-grid-2">
             <div>
               <label class="modal-section-label">Dataset Used</label>
               <input type="text" class="hr-search-input" id="res-input-dataset" style="width:100%" placeholder="e.g. ImageNet, WMT 2014" value="${editingPaper ? escHtml(editingPaper.dataset || '') : ''}">
@@ -410,7 +482,7 @@ function openAddResearchModal(editingPaper = null) {
             <textarea class="hr-answer-textarea" id="res-input-findings" style="min-height:65px" placeholder="What did they prove or benchmark?">${editingPaper ? escHtml(editingPaper.key_findings || '') : ''}</textarea>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="res-modal-grid-2">
             <div>
               <label class="modal-section-label">Limitations</label>
               <textarea class="hr-answer-textarea" id="res-input-limits" style="min-height:65px" placeholder="Flaws, assumptions, computational bottlenecks...">${editingPaper ? escHtml(editingPaper.limitations || '') : ''}</textarea>
