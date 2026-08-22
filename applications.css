@@ -1,0 +1,567 @@
+/* ================================================================
+   JOB APPLICATION TRACKER - SPREADSHEET & KANBAN STYLES
+   ================================================================ */
+
+.app-tracker-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+/* ── Top Bar & Metrics ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.app-heading {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.app-subheading {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Metrics Cards ── */
+.app-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.app-stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-stat-num {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.app-stat-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ── Toolbar & Filters ── */
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.app-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.app-search-wrap {
+  position: relative;
+  min-width: 220px;
+  max-width: 340px;
+  flex: 1;
+}
+
+.app-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.app-search-input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 6px 10px 6px 28px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.app-search-input:focus {
+  border-color: var(--line2);
+  background: var(--bg3);
+}
+
+.app-search-input::placeholder {
+  color: var(--muted);
+}
+
+.app-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── View Switcher (Spreadsheet vs Kanban) ── */
+.app-view-toggle {
+  display: inline-flex;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 2px;
+}
+
+.app-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.app-toggle-btn:hover {
+  color: var(--text);
+}
+
+.app-toggle-btn.active {
+  background: var(--bg3);
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ════════════════════════════════════════════════
+   1. SPREADSHEET TABLE VIEW
+   ════════════════════════════════════════════════ */
+.app-table-wrapper {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.app-th {
+  background: var(--bg3);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line2);
+  border-right: 1px solid var(--line);
+  user-select: none;
+  cursor: pointer;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: color 0.15s ease;
+}
+
+.app-th:hover {
+  color: var(--text);
+}
+
+.app-th-sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 9px;
+  vertical-align: middle;
+}
+
+.app-td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--mid);
+  transition: background 0.1s ease;
+}
+
+.app-tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.app-tr:hover .app-td {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+}
+
+.app-tr.expanded .app-td {
+  background: var(--bg3);
+  border-bottom-color: transparent;
+}
+
+/* Sticky First Column for Company / Role */
+.app-th.sticky-col,
+.app-td.sticky-col {
+  position: sticky;
+  left: 0;
+  background: var(--bg2);
+  z-index: 5;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.25);
+}
+
+.app-th.sticky-col {
+  background: var(--bg3);
+  z-index: 15;
+}
+
+.app-tr:hover .app-td.sticky-col {
+  background: var(--bg3);
+}
+
+/* ── Inline Table Badges & Cells ── */
+.app-company-cell {
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-role-text {
+  font-size: 11.5px;
+  color: var(--mid);
+  margin-top: 1px;
+}
+
+.app-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status-wishlist { background: rgba(167, 139, 250, 0.15); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.3); }
+.status-applied { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.3); }
+.status-screening { background: rgba(251, 191, 36, 0.15); color: #fde047; border: 1px solid rgba(251, 191, 36, 0.3); }
+.status-interview { background: rgba(249, 115, 22, 0.15); color: #fdba74; border: 1px solid rgba(249, 115, 22, 0.3); }
+.status-offer { background: rgba(74, 222, 128, 0.15); color: #86efac; border: 1px solid rgba(74, 222, 128, 0.3); }
+.status-rejected { background: rgba(248, 113, 113, 0.15); color: #fca5a5; border: 1px solid rgba(248, 113, 113, 0.3); }
+.status-archived { background: rgba(113, 113, 122, 0.15); color: #a1a1aa; border: 1px solid rgba(113, 113, 122, 0.3); }
+
+.app-workmode-pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg3);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.app-deadline-warn {
+  color: var(--hard-text);
+  font-weight: 600;
+}
+
+.app-deadline-soon {
+  color: var(--medium-text);
+}
+
+/* ── Expanded Row Details Panel ── */
+.app-detail-row {
+  background: var(--bg);
+  border-bottom: 1px solid var(--line2);
+}
+
+.app-detail-panel {
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  font-size: 12px;
+}
+
+.app-detail-block-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.app-detail-text {
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.app-actions-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* ════════════════════════════════════════════════
+   2. KANBAN STAGE BOARD VIEW
+   ════════════════════════════════════════════════ */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.kanban-column {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+  max-height: 80vh;
+}
+
+.kanban-column-header {
+  padding: 12px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.kanban-column-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kanban-col-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--bg3);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.kanban-column-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 120px;
+  transition: background 0.15s ease;
+}
+
+.kanban-column-body.drag-over {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+}
+
+.kanban-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: grab;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card:hover {
+  border-color: var(--line2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.kanban-card.dragging {
+  opacity: 0.35;
+  transform: scale(0.97);
+}
+
+.kanban-card-company {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.kanban-card-role {
+  font-size: 11.5px;
+  color: var(--mid);
+  margin: 3px 0 8px;
+  word-break: break-word;
+}
+
+.kanban-card-stage-pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--accent);
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.kanban-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+}
+
+/* ════════════════════════════════════════════════
+   3. FILE ATTACHMENTS & PILLS
+   ════════════════════════════════════════════════ */
+.app-attachment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-attachment-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-dropzone {
+  border: 1px dashed var(--line2);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.app-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--bg3);
+}
+
+.app-dropzone-label {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* ════════════════════════════════════════════════
+   4. CUSTOM FIELDS MANAGER MODAL
+   ════════════════════════════════════════════════ */
+.cf-manager-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+.cf-type-pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.cf-reorder-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cf-reorder-btn:hover {
+  color: var(--text);
+}

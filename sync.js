@@ -27,11 +27,35 @@ function emitStatus(s) {
 // ─── All keys that must be in sync ───────────────────────────────────────────
 // FIX: was only syncing 4 of 8 keys; pattern_logs / diff_ratings / saved_code /
 //      solve_times were silently left out and never reached Firebase.
-const SYNC_KEYS = [
+//
+// orbit. placement modules (added additively — original DSA_KEYS list and
+// merge behavior below is untouched so existing DSA sync never regresses):
+//   aptitude      - {} object, keyed by question id -> {status, attempts...}
+//   aptitude_qs   - [] array, user-added aptitude questions
+//   aptitude_notes- {} object, keyed by topic id -> formula/tricks notes text
+//   hr_answers    - {} object, keyed by HR question id -> {answer, status}
+//   star_stories  - [] array of STAR story objects
+//   research      - [] array of research tracker entries
+//   cs_state      - {} object, keyed by CS topic id -> {level, notes, qStatus}
+//   sysdesign_state - {} object, keyed by SD topic id -> {level, notes, qStatus}
+//   notes_v2      - {} object, keyed by note id -> rich note (title, html, tags, pos...)
+//   reminders     - [] array of reminder objects
+//   applications  - [] array of job application entries
+//   app_fields    - [] array of custom application field defs
+const DSA_KEYS = [
   "completed", "notes", "global_notes", "solve_dates",
   "solve_times", "pattern_logs", "diff_ratings", "saved_code", "review_times"
 ];
-const ARRAY_KEYS = new Set(["global_notes"]);   // keys whose default is [] not {}
+const MODULE_KEYS = [
+  "aptitude", "aptitude_qs", "aptitude_notes", "hr_answers", "star_stories",
+  "research", "cs_state", "sysdesign_state", "notes_v2", "reminders",
+  "applications", "applications_custom_fields", "app_fields", "puzzles_solved"
+];
+const SYNC_KEYS = DSA_KEYS.concat(MODULE_KEYS);
+const ARRAY_KEYS = new Set([
+  "global_notes",
+  "aptitude_qs", "star_stories", "research", "reminders", "applications", "applications_custom_fields", "app_fields"
+]);   // keys whose default is [] not {} — puzzles_solved is a {} boolean map, not listed here
 
 function _getLocalData() {
   const out = {};
@@ -74,7 +98,25 @@ function _mergeData(local, remote) {
       (remote.global_notes || []).length >= (local.global_notes || []).length
         ? remote.global_notes
         : local.global_notes,
+
+    // orbit. placement modules: generic merge (object keys union, remote wins;
+    // arrays keep whichever side is longer). Additive only — does not touch
+    // any of the DSA keys handled explicitly above.
+    ..._mergeModuleKeys(local, remote),
   };
+}
+
+function _mergeModuleKeys(local, remote) {
+  const out = {};
+  MODULE_KEYS.forEach((k) => {
+    if (ARRAY_KEYS.has(k)) {
+      const l = local[k] || [], r = remote[k] || [];
+      out[k] = r.length >= l.length ? r : l;
+    } else {
+      out[k] = { ...(local[k] || {}), ...(remote[k] || {}) };
+    }
+  });
+  return out;
 }
 
 // ─── Snapshot subscription (with cleanup) ────────────────────────────────────

@@ -10,7 +10,8 @@
    ================================================================ */
 function _dialog(html, onMount) {
   const overlay = document.createElement("div");
-  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:16px";
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:16px";
   overlay.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:24px 24px 20px;max-width:360px;width:100%;box-shadow:0 16px 60px rgba(0,0,0,.6);font-family:var(--sans)">${html}</div>`;
   document.body.appendChild(overlay);
   const remove = () => overlay.remove();
@@ -20,11 +21,19 @@ function _dialog(html, onMount) {
 
 function showToast(msg, type = "info") {
   const t = document.createElement("div");
-  const color = type === "error" ? "#c86868" : type === "success" ? "#5a8a6a" : "var(--accent2)";
+  const color =
+    type === "error"
+      ? "#c86868"
+      : type === "success"
+        ? "#5a8a6a"
+        : "var(--accent2)";
   t.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid ${color};color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 18px;border-radius:8px;z-index:9100;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .3s`;
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.remove(), 320); }, 2400);
+  setTimeout(() => {
+    t.style.opacity = "0";
+    setTimeout(() => t.remove(), 320);
+  }, 2400);
 }
 
 function showAlert(msg, type = "info") {
@@ -33,7 +42,9 @@ function showAlert(msg, type = "info") {
      <div style="display:flex;justify-content:flex-end">
        <button id="dlg-ok" style="background:var(--bg4);border:1px solid var(--line2);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 20px;border-radius:6px;cursor:pointer">ok</button>
      </div>`,
-    (box, remove) => { box.querySelector("#dlg-ok").onclick = remove; }
+    (box, remove) => {
+      box.querySelector("#dlg-ok").onclick = remove;
+    },
   );
 }
 
@@ -46,8 +57,11 @@ function showConfirm(msg, onYes) {
      </div>`,
     (box, remove) => {
       box.querySelector("#dlg-no").onclick = remove;
-      box.querySelector("#dlg-yes").onclick = () => { remove(); onYes(); };
-    }
+      box.querySelector("#dlg-yes").onclick = () => {
+        remove();
+        onYes();
+      };
+    },
   );
 }
 
@@ -62,15 +76,21 @@ function showPrompt(msg, placeholder, defaultVal, onSubmit) {
     (box, remove) => {
       const inp = box.querySelector("#dlg-input");
       setTimeout(() => inp.focus(), 50);
-      const submit = () => { remove(); onSubmit(inp.value); };
+      const submit = () => {
+        remove();
+        onSubmit(inp.value);
+      };
       box.querySelector("#dlg-cancel").onclick = remove;
       box.querySelector("#dlg-ok").onclick = submit;
-      inp.onkeydown = (e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") remove(); };
-    }
+      inp.onkeydown = (e) => {
+        if (e.key === "Enter") submit();
+        if (e.key === "Escape") remove();
+      };
+    },
   );
 }
 
-const DB = {
+var DB = window.DB || {
   get: (k) => {
     try {
       return JSON.parse(localStorage.getItem("dsa_" + k));
@@ -84,6 +104,7 @@ const DB = {
     } catch (e) {}
   },
 };
+window.DB = DB;
 
 const getCompleted = () => DB.get("completed") || {};
 const setCompleted = (o) => {
@@ -284,40 +305,91 @@ function setWeeklyGoal(n) {
 }
 
 /* ================================================================
+   SHARED SVG ICONS (no emoji — line icons matching the sidebar)
+   ================================================================ */
+const ICON_SVG = {
+  brain: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5A2.5 2.5 0 0 0 6.5 7v.3A2.7 2.7 0 0 0 4.8 9.6v1.1c0 .9.5 1.7 1.2 2.1a2.6 2.6 0 0 0-.3 1.2 2.6 2.6 0 0 0 2.6 2.6h.2a2.5 2.5 0 0 0 2.5 2.2V6.8A2.3 2.3 0 0 0 9 4.5z"/><path d="M15 4.5A2.5 2.5 0 0 1 17.5 7v.3a2.7 2.7 0 0 1 1.7 2.3v1.1c0 .9-.5 1.7-1.2 2.1.2.4.3.8.3 1.2a2.6 2.6 0 0 1-2.6 2.6h-.2a2.5 2.5 0 0 1-2.5 2.2V6.8A2.3 2.3 0 0 1 15 4.5z"/></svg>`,
+  puzzle: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h2.2a1.6 1.6 0 1 1 3.1 0H13a2 2 0 0 1 2 2v1.7a1.6 1.6 0 1 1 0 3.1V15a2 2 0 0 1-2 2h-1.7a1.6 1.6 0 1 1-3.1 0H6a2 2 0 0 1-2-2v-2.2a1.6 1.6 0 1 1 0-3.1z"/></svg>`,
+  book: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h6v16H5a2 2 0 0 1-2-2z"/><path d="M21 5a2 2 0 0 0-2-2h-6v16h6a2 2 0 0 0 2-2z"/></svg>`,
+  users: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 20v-1.5a3.5 3.5 0 0 0-3.5-3.5H6a3.5 3.5 0 0 0-3.5 3.5V20"/><circle cx="9" cy="7.5" r="3.3"/><path d="M21.5 20v-1.5a3.3 3.3 0 0 0-2.4-3.2"/><path d="M15 4.3a3.3 3.3 0 0 1 0 6.4"/></svg>`,
+  file: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2.5H7a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M13.5 2.5V8H19"/></svg>`,
+  flask: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5v6.2L4.9 17a2 2 0 0 0 1.8 2.9h10.6a2 2 0 0 0 1.8-2.9l-4.6-8.3V2.5"/><path d="M8.3 2.5h7.4"/><path d="M7.3 14.5h9.4"/></svg>`,
+  briefcase: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="12.5" rx="2"/><path d="M8 7V5.3a1.8 1.8 0 0 1 1.8-1.8h4.4A1.8 1.8 0 0 1 16 5.3V7"/><path d="M2.5 12.5h19"/></svg>`,
+  target: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5 14.5 9.5"/><path d="M11 7l1.3-1.3a3 3 0 0 1 4.3 4.3L15.3 11.3"/><path d="M13 17l-1.3 1.3a3 3 0 0 1-4.3-4.3L8.7 12.7"/></svg>`,
+  image: `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15.5 16.5 11 6 19"/></svg>`,
+};
+
+/* ================================================================
    SYNC STATUS UI
    ================================================================ */
-onSyncStatusChange((s) => {
-  document.querySelectorAll(".sync-badge").forEach((badge) => {
-    badge.className = "sync-badge " + s;
+if (typeof onSyncStatusChange === "function") {
+  onSyncStatusChange((s) => {
+    document.querySelectorAll(".sync-badge").forEach((badge) => {
+      badge.className = "sync-badge " + s;
+    });
+    document.querySelectorAll(".sync-label-text").forEach((label) => {
+      label.textContent = s === "offline" ? "local" : s;
+    });
   });
-  document.querySelectorAll(".sync-label-text").forEach((label) => {
-    label.textContent = s === "offline" ? "local" : s;
-  });
-});
+}
 
 /* ================================================================
    SIDEBAR NAV
    ================================================================ */
 function toggleNavGroup(id, el) {
-  document.getElementById(id).classList.toggle("collapsed");
-  el.classList.toggle("collapsed");
+  const grp = document.getElementById(id);
+  if (grp) grp.classList.toggle("collapsed");
+  if (el) el.classList.toggle("collapsed");
+}
+
+function onDsaTrackerClick(el) {
+  const group = document.getElementById("dsa-group");
+  if (group && group.classList.contains("collapsed")) {
+    group.classList.remove("collapsed");
+    if (el) el.classList.remove("collapsed");
+  }
+  showView("dsa-dashboard");
+}
+
+function toggleDesktopSidebar() {
+  const sb = document.getElementById("sidebar");
+  if (!sb) return;
+  const isCollapsed = sb.classList.toggle("collapsed");
+  document.body.classList.toggle("sidebar-collapsed", isCollapsed);
+  try {
+    localStorage.setItem("dsa_sidebar_collapsed", isCollapsed ? "1" : "0");
+  } catch (e) {}
+}
+
+function toggleMobSidebar() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (!sb) return;
+  const isOpen = sb.classList.toggle("mob-open");
+  if (bd) bd.classList.toggle("open", isOpen);
+}
+
+function closeMobSidebar() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (sb) sb.classList.remove("mob-open");
+  if (bd) bd.classList.remove("open");
 }
 
 function buildNav() {
   const dsaNav = document.getElementById("topic-nav");
   dsaNav.innerHTML = "";
 
-  dsaNav.innerHTML += `
-    <div class="nav-topic nav-topic-lc" onclick="showView('leetcode')" id="nav-leetcode">
-      <span class="nav-icon" style="color:#e8a838"></span><span style="color:#e8a838; font-weight:500;">Leetcode</span>
-    </div>`;
-
   DSA_DATA.topics.forEach((t) => {
     const el = document.createElement("div");
     el.className = "nav-topic";
     el.id = "nav-topic-" + t.id;
     el.innerHTML = `<span class="nav-icon" style="color:#e8a838">${t.icon}</span><span>${t.title}</span>`;
-    el.onclick = () => showTopic(t.id);
+    el.onclick = () => {
+      closeMobSidebar();
+      showTopic(t.id);
+    };
     dsaNav.appendChild(el);
     t.subtopics.forEach((st) => {
       const sub = document.createElement("div");
@@ -326,114 +398,61 @@ function buildNav() {
       sub.textContent = st.title;
       sub.onclick = (e) => {
         e.stopPropagation();
+        closeMobSidebar();
         showTopic(t.id, st.id);
       };
       dsaNav.appendChild(sub);
     });
   });
-
-  const cpNav = document.getElementById("cf-topic-nav");
-  cpNav.innerHTML = "";
-  cpNav.innerHTML += `
-    <div class="nav-topic nav-topic-cf" onclick="showView('codeforces')" id="nav-codeforces">
-    <span class="nav-icon" style="color:#e8a838"></span>
-      <span style="color:#6a7acc; font-weight:500;">Codeforces</span>
-    </div>`;
-  if (DSA_DATA.codeforces) {
-    DSA_DATA.codeforces.topics.forEach((t) => {
-      const el = document.createElement("div");
-      el.className = "nav-topic nav-topic-cf";
-      el.id = "nav-cftopic-" + t.id;
-      el.innerHTML = `<span class="nav-icon" style="color:#6a7acc">${t.icon}</span><span>${t.title}</span>`;
-      el.onclick = () => showCFTopic(t.id);
-      cpNav.appendChild(el);
-    });
-  }
-  buildMobDrawerContent();
-}
-
-function buildMobDrawerContent() {
-  const c = document.getElementById("mob-drawer-content");
-  if (!c) return;
-  c.innerHTML = "";
-
-  const addSection = (text, color) => {
-    const s = document.createElement("div");
-    s.className = "mob-drawer-section";
-    s.style.color = color;
-    s.textContent = text;
-    c.appendChild(s);
-  };
-
-  const addItem = (iconHtml, label, onClick) => {
-    const el = document.createElement("div");
-    el.className = "mob-drawer-item";
-    el.innerHTML = `<span class="mob-drawer-icon">${iconHtml}</span>${label}`;
-    el.onclick = onClick;
-    c.appendChild(el);
-  };
-
-  addSection("DSA Topics", "#e8a838");
-  addItem(`<span style="color:#e8a838">❖</span>`, "LeetCode Platform", () => { closeMobDrawer(); showView("leetcode"); });
-  if (DSA_DATA.leetcode) {
-    DSA_DATA.leetcode.topics.forEach((t) => {
-      addItem(`<span style="color:#e8a838">↳</span>`, t.title, () => { closeMobDrawer(); showLCTopic(t.id); });
-    });
-  }
-  DSA_DATA.topics.forEach((t) => {
-    addItem(`<span style="color:#e8a838">${t.icon}</span>`, t.title, () => { closeMobDrawer(); showTopic(t.id); });
-  });
-
-  addSection("Competitive Programming", "#6a7acc");
-  addItem(`<span style="color:#6a7acc">⬡</span>`, "Codeforces Platform", () => { closeMobDrawer(); showView("codeforces"); });
-  if (DSA_DATA.codeforces) {
-    DSA_DATA.codeforces.topics.forEach((t) => {
-      addItem(`<span style="color:#6a7acc">${t.icon}</span>`, t.title, () => { closeMobDrawer(); showCFTopic(t.id); });
-    });
-  }
 }
 
 /* ================================================================
    VIEW ROUTING
    ================================================================ */
 function showView(name) {
+  closeMobSidebar();
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
   document
-    .querySelectorAll(".nav-topic, .nav-sub")
+    .querySelectorAll(".nav-topic, .nav-sub, .nav-collapsible-topic")
     .forEach((n) => n.classList.remove("active"));
-  document
-    .querySelectorAll(".mob-tab")
-    .forEach((b) => b.classList.remove("active"));
 
   const view = document.getElementById("view-" + name);
   if (view) view.classList.add("active");
   const navEl = document.getElementById("nav-" + name);
   if (navEl) navEl.classList.add("active");
-  const mobEl = document.getElementById("mobtab-" + name);
-  if (mobEl) mobEl.classList.add("active");
 
   document.getElementById("main").scrollTop = 0;
 
-  if (name === "dashboard") buildDashboard();
-  if (name === "dayplan") buildDayPlan();
+  if (name === "dashboard") buildMainDashboard();
+  if (name === "dsa-dashboard") buildDashboard();
+  if (name === "dsa-dayplan") buildDayPlan();
+  if (name === "dsa-patterns") buildPatterns();
+  if (name === "dsa-revision") buildReviewBlock("review-block-container-full");
   if (name === "notes") buildNotes();
-  if (name === "patterns") buildPatterns();
-  if (name === "codeforces") buildPlatformDashboard("codeforces");
+  if (name === "puzzles") buildPuzzlesView();
   if (name === "leetcode") buildPlatformDashboard("leetcode");
+  if (name === "aptitude" && typeof buildAptitudeView === "function")
+    buildAptitudeView();
+  if (name === "hr" && typeof buildHRView === "function") buildHRView();
+  if (name === "research" && typeof buildResearchView === "function")
+    buildResearchView();
+  if (name === "cs" && typeof buildCSView === "function") buildCSView();
+  if (name === "systemdesign" && typeof buildSystemDesignView === "function")
+    buildSystemDesignView();
+  if (name === "applications" && typeof buildApplicationsView === "function")
+    buildApplicationsView();
 }
 
 function showTopic(topicId, scrollToSubtopic) {
+  closeMobSidebar();
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
   document
-    .querySelectorAll(".nav-topic, .nav-sub")
+    .querySelectorAll(".nav-topic, .nav-sub, .nav-collapsible-topic")
     .forEach((n) => n.classList.remove("active"));
-  document
-    .querySelectorAll(".mob-tab")
-    .forEach((b) => b.classList.remove("active"));
   document.getElementById("view-topic").classList.add("active");
   const navEl = document.getElementById("nav-topic-" + topicId);
   if (navEl) navEl.classList.add("active");
@@ -452,9 +471,9 @@ function showCFTopic(topicId) {
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
   document
-    .querySelectorAll(".nav-topic, .nav-sub")
+    .querySelectorAll(".nav-topic, .nav-sub, .nav-collapsible-topic")
     .forEach((n) => n.classList.remove("active"));
-  document.getElementById("view-codeforces").classList.add("active");
+  document.getElementById("view-codeforces")?.classList.add("active");
   const navEl = document.getElementById("nav-cftopic-" + topicId);
   if (navEl) navEl.classList.add("active");
   buildPlatformTopicView("codeforces", topicId);
@@ -466,26 +485,13 @@ function showLCTopic(topicId) {
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
   document
-    .querySelectorAll(".nav-topic, .nav-sub")
+    .querySelectorAll(".nav-topic, .nav-sub, .nav-collapsible-topic")
     .forEach((n) => n.classList.remove("active"));
   document.getElementById("view-leetcode").classList.add("active");
   const navEl = document.getElementById("nav-lcsub-" + topicId);
   if (navEl) navEl.classList.add("active");
   document.getElementById("main").scrollTop = 0;
   buildPlatformTopicView("leetcode", topicId);
-}
-
-function mobTab(name) {
-  showView(name);
-}
-
-function toggleMobTopicsMenu() {
-  document.getElementById("mob-topics-drawer").classList.toggle("open");
-  document.getElementById("mob-drawer-overlay").classList.toggle("open");
-}
-function closeMobDrawer() {
-  document.getElementById("mob-topics-drawer").classList.remove("open");
-  document.getElementById("mob-drawer-overlay").classList.remove("open");
 }
 
 /* ================================================================
@@ -605,8 +611,11 @@ function buildHeatmap(container) {
    This way "mark reviewed" properly resets the countdown — previously the
    block had no way to track that you'd done a review session at all.
    ================================================================ */
-function buildReviewBlock() {
-  const container = document.getElementById("review-block-container");
+function buildReviewBlock(containerId) {
+  const container = document.getElementById(
+    containerId || "review-block-container",
+  );
+  if (!container) return;
   const c = getCompleted();
   const solveTimes = DB.get("solve_times") || {};
   const reviewTimes = getReviewTimes();
@@ -841,14 +850,17 @@ function buildWeeklyGoalWidget() {
       <button class="wg-edit-btn" onclick="promptWeeklyGoal()" title="change goal">✎</button>
     </div>
     <div class="wg-bar-bg"><div class="wg-bar-fill ${met ? "wg-bar-met" : ""}" style="width:${pct}%"></div></div>
-    ${met ? `<div class="wg-congrats">🎯 weekly goal reached!</div>` : `<div class="wg-left">${goal - done} more to hit your goal</div>`}`;
+    ${met ? `<div class="wg-congrats">${ICON_SVG.target} weekly goal reached!</div>` : `<div class="wg-left">${goal - done} more to hit your goal</div>`}`;
 }
 
 function promptWeeklyGoal() {
   const current = getWeeklyGoal();
   showPrompt("Set weekly problem goal:", current, current, (val) => {
     const n = parseInt(val);
-    if (n > 0) { setWeeklyGoal(n); buildWeeklyGoalWidget(); }
+    if (n > 0) {
+      setWeeklyGoal(n);
+      buildWeeklyGoalWidget();
+    }
   });
 }
 
@@ -912,7 +924,7 @@ function buildTopicView(topicId) {
 
   document.getElementById("topic-header").innerHTML = `
     <div class="breadcrumb">
-      <span onclick="showView('dashboard')">home</span><span>›</span><span>${topic.title}</span>
+      <span onclick="showView('dsa-dashboard')">home</span><span>›</span><span>${topic.title}</span>
     </div>
     <div class="topic-title">${topic.title}</div>
     <div class="topic-meta">${solved} / ${total} solved · ${topic.subtopics.length} patterns</div>`;
@@ -1143,481 +1155,14 @@ function escHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
-function buildNotes() {
-  const notes = getGlobalNotes();
-  const container = document.getElementById("notes-content");
-  container.innerHTML = "";
-
-  if (!notes.length) {
-    container.innerHTML = `<div class="notes-empty">No notes yet — hit "+ add note" to begin.</div>`;
-    return;
-  }
-
-  notes.forEach((note, i) => {
-    container.appendChild(buildNoteCard(note, i));
-  });
-}
-
-function buildNoteCard(note, i) {
-  const d = new Date(note.created || Date.now()).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-  const isExpanded = _expandedNote === i;
-  const tagHtml = (note.tags || [])
-    .map((t) => `<span class="note-tag">${escHtml(t)}</span>`)
-    .join("");
-
-  const isEditing = _editingNote === i;
-
-  const card = document.createElement("div");
-  card.className =
-    "note-card" +
-    (isExpanded ? " expanded" : "") +
-    (isEditing ? " editing" : "");
-  card.id = "note-card-" + i;
-
-  // ── Full content display (always visible) ──
-  const contentHtml = (note.content || "").trim()
-    ? `<div class="note-view-content">${renderNoteMarkdown(note.content)}</div>`
-    : "";
-
-  const codeHtml = note.code
-    ? `<div class="note-view-section">
-        <div class="note-view-section-label">${escHtml(note.codeLang || "code")}</div>
-        <pre class="note-view-code"><code>${escHtml(note.code)}</code></pre>
-       </div>`
-    : "";
-
-  const linksHtml = (note.links || []).length
-    ? `<div class="note-view-section">
-        <div class="note-view-section-label">links</div>
-        <div class="note-view-links">${note.links
-          .map(
-            (l) =>
-              `<a href="${escHtml(l.url)}" target="_blank" class="note-view-link-item" onclick="event.stopPropagation()">&#128279; ${escHtml(l.label)}</a>`,
-          )
-          .join("")}</div>
-       </div>`
-    : "";
-
-  const imagesHtml = (note.images || []).length
-    ? `<div class="note-view-section">
-        <div class="note-view-section-label">images</div>
-        <div class="note-view-images">${note.images
-          .map(
-            (img) =>
-              `<img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-view-thumb" onclick="event.stopPropagation();expandNoteImage('${img.dataUrl}')" title="${escHtml(img.name)}">`,
-          )
-          .join("")}</div>
-       </div>`
-    : "";
-
-  const isEmpty =
-    !note.content && !note.code && !note.links?.length && !note.images?.length;
-
-  // Build compact metadata pills for collapsed state
-  const metaPills = [];
-  if (note.code)
-    metaPills.push(
-      `<span class="note-meta-pill note-meta-code">⌨ ${escHtml(note.codeLang || "code")}</span>`,
-    );
-  if ((note.links || []).length)
-    metaPills.push(
-      `<span class="note-meta-pill note-meta-links">🔗 ${note.links.length} link${note.links.length > 1 ? "s" : ""}</span>`,
-    );
-  if ((note.images || []).length)
-    metaPills.push(
-      `<span class="note-meta-pill note-meta-images">🖼 ${note.images.length} image${note.images.length > 1 ? "s" : ""}</span>`,
-    );
-
-  // Content preview for collapsed state
-  const previewText = (note.content || "")
-    .replace(/[#*`>-]/g, "")
-    .trim()
-    .slice(0, 160);
-
-  card.innerHTML = `
-    <div class="note-view" onclick="toggleNoteExpand(${i})">
-      <div class="note-view-header">
-        <div class="note-view-title-wrap">
-          <div class="note-view-title">${escHtml(note.title) || '<span style="color:var(--muted);font-weight:400;font-style:italic">Untitled</span>'}</div>
-          ${tagHtml ? `<div class="note-tags-row">${tagHtml}</div>` : ""}
-        </div>
-        <div class="note-view-header-right">
-          <span class="note-card-date">${d}</span>
-          <button class="note-edit-btn-pill" onclick="event.stopPropagation();toggleNoteEdit(${i})" title="${isEditing ? "close editor" : "edit note"}">${isEditing ? "✕ close" : "✏ edit"}</button>
-        </div>
-      </div>
-      ${
-        isEmpty
-          ? `<div class="note-view-empty">empty note — click edit to add content</div>`
-          : isExpanded
-            ? `${contentHtml}${codeHtml}${linksHtml}${imagesHtml}`
-            : `<div class="note-collapsed-preview">${escHtml(previewText)}${previewText.length === 160 ? "…" : ""}</div>
-             ${metaPills.length ? `<div class="note-meta-pills-row">${metaPills.join("")}</div>` : ""}`
-      }
-      ${!isEmpty && !isExpanded ? `<div class="note-expand-hint">click to expand</div>` : ""}
-    </div>
-    ${isEditing ? buildNoteEditorHTML(note, i) : ""}`;
-
-  return card;
-}
-
-// Simple markdown-like renderer for note content
-function renderNoteMarkdown(text) {
-  return escHtml(text)
-    .replace(/^### (.+)$/gm, '<div class="nv-h3">$1</div>')
-    .replace(/^## (.+)$/gm, '<div class="nv-h2">$1</div>')
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, '<code class="nv-code">$1</code>')
-    .replace(/^&gt; (.+)$/gm, '<div class="nv-quote">$1</div>')
-    .replace(/^- (.+)$/gm, '<div class="nv-li">&#8226; $1</div>')
-    .replace(/\n/g, "<br>");
-}
-
-function buildNoteEditorHTML(note, i) {
-  const langOpts = ["cpp", "python", "java", "javascript", "go", "rust"]
-    .map(
-      (l) =>
-        `<option value="${l}"${(note.codeLang || "cpp") === l ? " selected" : ""}>${l}</option>`,
-    )
-    .join("");
-
-  const linksHtml = (note.links || [])
-    .map(
-      (l, li) =>
-        `<div class="note-link-item">
-      <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
-      <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${li})">✕</button>
-    </div>`,
-    )
-    .join("");
-
-  const imagesHtml = (note.images || [])
-    .map(
-      (img, ii) =>
-        `<div class="note-image-item">
-      <img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-image-thumb" onclick="expandNoteImage('${img.dataUrl}')"/>
-      <span class="note-image-name">${escHtml(img.name)}</span>
-      <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteImage(${i},${ii})">✕</button>
-    </div>`,
-    )
-    .join("");
-
-  return `
-    <div class="note-editor-body" onclick="event.stopPropagation()">
-
-      <div class="note-editor-title-row">
-        <input class="note-editor-title-input" id="nei-title-${i}"
-          placeholder="Note title…"
-          value="${escHtml(note.title || "")}"
-          oninput="saveInlineNote(${i})" />
-        <button class="note-delete-btn" onclick="deleteNote(${i})">delete</button>
-      </div>
-
-      <div class="note-editor-tabs" id="nei-tabs-${i}">
-        <button class="note-tab active" onclick="switchInlineTab(${i},'write',this)">✏ write</button>
-        <button class="note-tab" onclick="switchInlineTab(${i},'code',this)">⌨ code</button>
-        <button class="note-tab" onclick="switchInlineTab(${i},'links',this)">🔗 links</button>
-        <button class="note-tab" onclick="switchInlineTab(${i},'images',this)">🖼 images</button>
-      </div>
-
-      <!-- Write panel -->
-      <div class="note-panel" id="nei-write-${i}">
-        <div class="note-format-bar">
-          <button class="note-fmt-btn" onclick="fmtNote(${i},'**','**')" title="Bold"><b>B</b></button>
-          <button class="note-fmt-btn" onclick="fmtNote(${i},'*','*')" title="Italic"><i>I</i></button>
-          <button class="note-fmt-btn" onclick="fmtNote(${i},'&#96;','&#96;')" title="Inline code">&#96;c&#96;</button>
-          <button class="note-fmt-btn" onclick="fmtNotePrefix(${i},'- ')" title="List item">• list</button>
-          <button class="note-fmt-btn" onclick="fmtNotePrefix(${i},'> ')" title="Quote">❝ quote</button>
-          <button class="note-fmt-btn" onclick="fmtNotePrefix(${i},'### ')" title="Heading">H3</button>
-        </div>
-        <textarea class="note-textarea" id="nei-content-${i}"
-          placeholder="Write your insights, patterns, aha moments…"
-          oninput="saveInlineNote(${i})">${escHtml(note.content || "")}</textarea>
-        <div class="note-tags-label-row">
-          <span class="note-tags-label">tags</span>
-          <input class="note-tags-input" id="nei-tags-${i}"
-            placeholder="dp, graphs, greedy…"
-            value="${escHtml((note.tags || []).join(", "))}"
-            oninput="saveInlineNote(${i})" />
-        </div>
-      </div>
-
-      <!-- Code panel -->
-      <div class="note-panel note-panel-hidden" id="nei-code-panel-${i}">
-        <div class="note-code-header">
-          <span class="note-tags-label">language</span>
-          <select class="note-lang-select" id="nei-lang-${i}" onchange="saveInlineNote(${i})">${langOpts}</select>
-        </div>
-        <textarea class="note-textarea note-code-area" id="nei-code-${i}"
-          placeholder="// paste your solution or snippet here…"
-          spellcheck="false"
-          oninput="saveInlineNote(${i})">${escHtml(note.code || "")}</textarea>
-      </div>
-
-      <!-- Links panel -->
-      <div class="note-panel note-panel-hidden" id="nei-links-${i}">
-        <div class="note-links-list" id="nei-links-list-${i}">${linksHtml || '<div class="note-panel-empty">No links yet.</div>'}</div>
-        <button class="note-add-item-btn" onclick="addInlineNoteLink(${i})">+ add link</button>
-      </div>
-
-      <!-- Images panel -->
-      <div class="note-panel note-panel-hidden" id="nei-images-${i}">
-        <div class="note-images-grid" id="nei-images-grid-${i}">${imagesHtml || '<div class="note-panel-empty">No images yet.</div>'}</div>
-        <button class="note-add-item-btn" onclick="addInlineNoteImage(${i})">+ upload image</button>
-      </div>
-
-      <div class="note-editor-footer">
-        <span class="note-autosave-hint">auto-saved</span>
-      </div>
-    </div>`;
-}
-
-function toggleNoteExpand(i) {
-  _expandedNote = _expandedNote === i ? null : i;
-  // Close editor if collapsing
-  if (_expandedNote !== i) _editingNote = null;
-  buildNotes();
-  if (_expandedNote === i) {
-    setTimeout(() => {
-      const card = document.getElementById("note-card-" + i);
-      if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 50);
-  }
-}
-
-function toggleNoteEdit(i) {
-  _editingNote = _editingNote === i ? null : i;
-  // Ensure card is expanded when editing
-  if (_editingNote === i) _expandedNote = i;
-  buildNotes();
-  if (_editingNote === i) {
-    setTimeout(() => {
-      const card = document.getElementById("note-card-" + i);
-      if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      const ta = document.getElementById("nei-content-" + i);
-      if (ta) ta.focus();
-    }, 50);
-  }
-}
-
-function switchInlineTab(i, tab, btn) {
-  // Map tab name to panel element id (code panel has a different id to avoid collision with textarea)
-  const panelIds = {
-    write: `nei-write-${i}`,
-    code: `nei-code-panel-${i}`,
-    links: `nei-links-${i}`,
-    images: `nei-images-${i}`,
-  };
-  ["write", "code", "links", "images"].forEach((t) => {
-    const p = document.getElementById(panelIds[t]);
-    if (p) p.classList.toggle("note-panel-hidden", t !== tab);
-  });
-  document
-    .querySelectorAll(`#nei-tabs-${i} .note-tab`)
-    .forEach((b) => b.classList.remove("active"));
-  btn.classList.add("active");
-}
-
-function saveInlineNote(i) {
-  const n = getGlobalNotes();
-  const note = n[i] || {};
-  const titleEl = document.getElementById(`nei-title-${i}`);
-  const contentEl = document.getElementById(`nei-content-${i}`);
-  const tagsEl = document.getElementById(`nei-tags-${i}`);
-  const codeEl = document.getElementById(`nei-code-${i}`);
-  const langEl = document.getElementById(`nei-lang-${i}`);
-  if (titleEl) note.title = titleEl.value;
-  if (contentEl) note.content = contentEl.value;
-  if (tagsEl)
-    note.tags = tagsEl.value
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-  if (codeEl) note.code = codeEl.value;
-  if (langEl) note.codeLang = langEl.value;
-  n[i] = note;
-  setGlobalNotes(n);
-  // Live-refresh the view panel (title, content, code, links, images)
-  const card = document.getElementById("note-card-" + i);
-  if (!card) return;
-  const titleDiv = card.querySelector(".note-view-title");
-  if (titleDiv)
-    titleDiv.innerHTML =
-      escHtml(note.title) ||
-      '<span style="color:var(--muted);font-weight:400">Untitled</span>';
-  const contentDiv = card.querySelector(".note-view-content");
-  if (contentDiv) contentDiv.innerHTML = renderNoteMarkdown(note.content || "");
-  const codeDiv = card.querySelector(".note-view-code code");
-  if (codeDiv) codeDiv.textContent = note.code || "";
-  const codeLabelDiv = card.querySelector(".note-view-section-label");
-  if (codeLabelDiv && note.code !== undefined)
-    codeLabelDiv.textContent = note.codeLang || "code";
-}
-
-// Formatting helpers
-function fmtNote(i, before, after) {
-  const ta = document.getElementById(`nei-content-${i}`);
-  if (!ta) return;
-  const s = ta.selectionStart,
-    e = ta.selectionEnd;
-  const sel = ta.value.slice(s, e) || "text";
-  ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
-  ta.selectionStart = s + before.length;
-  ta.selectionEnd = s + before.length + sel.length;
-  ta.focus();
-  saveInlineNote(i);
-}
-function fmtNotePrefix(i, prefix) {
-  const ta = document.getElementById(`nei-content-${i}`);
-  if (!ta) return;
-  const s = ta.selectionStart;
-  const lineStart = ta.value.lastIndexOf("\n", s - 1) + 1;
-  ta.value = ta.value.slice(0, lineStart) + prefix + ta.value.slice(lineStart);
-  ta.selectionStart = ta.selectionEnd = s + prefix.length;
-  ta.focus();
-  saveInlineNote(i);
-}
-
+/* ================================================================
+   NOTES SYSTEM (Delegated to notes.js rich engine & sticky board)
+   ================================================================ */
 function addNote() {
-  const n = getGlobalNotes();
-  const idx = n.length;
-  n.push({
-    title: "",
-    content: "",
-    created: Date.now(),
-    tags: [],
-    links: [],
-    images: [],
-    code: "",
-  });
-  setGlobalNotes(n);
-  _expandedNote = idx;
-  _editingNote = idx;
-  buildNotes();
-  setTimeout(() => {
-    const ta = document.getElementById(`nei-title-${idx}`);
-    if (ta) ta.focus();
-    const card = document.getElementById("note-card-" + idx);
-    if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, 50);
-}
-
-function deleteNote(i) {
-  showConfirm("Delete this note? This can't be undone.", () => {
-    const n = getGlobalNotes();
-    n.splice(i, 1);
-    setGlobalNotes(n);
-    if (_expandedNote === i) _expandedNote = null;
-    else if (_expandedNote > i) _expandedNote--;
-    if (_editingNote === i) _editingNote = null;
-    else if (_editingNote !== null && _editingNote > i) _editingNote--;
-    buildNotes();
-  });
-}
-
-function addInlineNoteLink(i) {
-  showPrompt("Enter URL:", "https://...", "", (url) => {
-    if (!url) return;
-    showPrompt("Label (optional):", url, url, (label) => {
-      label = label || url;
-      const n = getGlobalNotes();
-      if (!n[i].links) n[i].links = [];
-      n[i].links.push({ url, label });
-      setGlobalNotes(n);
-      const listEl = document.getElementById(`nei-links-list-${i}`);
-      if (listEl) {
-        listEl.innerHTML = n[i].links
-          .map(
-            (l, li) =>
-              `<div class="note-link-item">
-            <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
-            <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${li})">✕</button>
-          </div>`,
-          )
-          .join("");
-      }
-    });
-  });
-}
-
-function removeInlineNoteLink(i, li) {
-  const n = getGlobalNotes();
-  n[i].links.splice(li, 1);
-  setGlobalNotes(n);
-  const listEl = document.getElementById(`nei-links-list-${i}`);
-  if (listEl) {
-    listEl.innerHTML = n[i].links.length
-      ? n[i].links
-          .map(
-            (l, idx) =>
-              `<div class="note-link-item">
-            <a href="${escHtml(l.url)}" target="_blank" class="note-link-anchor">${escHtml(l.label)}</a>
-            <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteLink(${i},${idx})">✕</button>
-          </div>`,
-          )
-          .join("")
-      : '<div class="note-panel-empty">No links yet.</div>';
+  if (typeof openNoteEditorModal === "function") {
+    openNoteEditorModal(null);
   }
 }
-
-function addInlineNoteImage(i) {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const n = getGlobalNotes();
-      if (!n[i].images) n[i].images = [];
-      n[i].images.push({ dataUrl: ev.target.result, name: file.name });
-      setGlobalNotes(n);
-      const grid = document.getElementById(`nei-images-grid-${i}`);
-      if (grid) {
-        grid.innerHTML = n[i].images
-          .map(
-            (img, ii) =>
-              `<div class="note-image-item">
-            <img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-image-thumb" onclick="expandNoteImage('${img.dataUrl}')"/>
-            <span class="note-image-name">${escHtml(img.name)}</span>
-            <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteImage(${i},${ii})">✕</button>
-          </div>`,
-          )
-          .join("");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-  input.click();
-}
-
-function removeInlineNoteImage(i, ii) {
-  const n = getGlobalNotes();
-  n[i].images.splice(ii, 1);
-  setGlobalNotes(n);
-  const grid = document.getElementById(`nei-images-grid-${i}`);
-  if (grid) {
-    grid.innerHTML = n[i].images.length
-      ? n[i].images
-          .map(
-            (img, idx) =>
-              `<div class="note-image-item">
-            <img src="${img.dataUrl}" alt="${escHtml(img.name)}" class="note-image-thumb" onclick="expandNoteImage('${img.dataUrl}')"/>
-            <span class="note-image-name">${escHtml(img.name)}</span>
-            <button class="note-remove-btn" onclick="event.stopPropagation();removeInlineNoteImage(${i},${idx})">✕</button>
-          </div>`,
-          )
-          .join("")
-      : '<div class="note-panel-empty">No images yet.</div>';
-  }
-}
-
 function expandNoteImage(src) {
   const d = document.createElement("div");
   d.style.cssText =
@@ -1626,26 +1171,6 @@ function expandNoteImage(src) {
   d.innerHTML = `<img src="${src}" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px #000">`;
   document.body.appendChild(d);
 }
-
-// Legacy stubs — kept so old modal HTML in index.html doesn't throw errors
-function openNoteEditor(idx) {
-  toggleNoteEdit(idx);
-}
-function closeNoteEditor() {
-  _editingNote = null;
-  buildNotes();
-}
-function saveNoteEditorField() {}
-function addNoteLink() {}
-function renderNoteLinks() {}
-function removeNoteLink() {}
-function addNoteImage() {}
-function renderNoteImages() {}
-function removeNoteImage() {}
-function closeNoteInsight() {
-  document.getElementById("note-insight-overlay")?.classList.remove("open");
-}
-function openNoteInsight() {}
 
 /* ================================================================
    PLATFORM DASHBOARDS (CODEFORCES & LEETCODE)
@@ -1765,7 +1290,7 @@ function buildPlatformTopicView(platform, topicId) {
 
   inner.innerHTML = `
     <div class="breadcrumb">
-      <span onclick="showView('dashboard')">home</span> ›
+      <span onclick="showView('dsa-dashboard')">home</span> ›
       <span onclick="showView('${platform}')" style="cursor:pointer">${platform}</span> ›
       <span>${topic.title}</span>
     </div>
@@ -2090,7 +1615,9 @@ function startTimer() {
       document.getElementById("timer-start-btn").textContent = "start";
       document.getElementById("timer-display").textContent = "00:00";
       if (Notification.permission === "granted") {
-        new Notification("Time is up!", { body: "Your session ended. Did you solve it?" });
+        new Notification("Time is up!", {
+          body: "Your session ended. Did you solve it?",
+        });
       }
       showToast("⏱ time's up! session ended.", "info");
     }
@@ -2202,7 +1729,10 @@ function importProgress(event) {
       buildDashboard();
       updateProgress();
     } catch (e) {
-      showToast("invalid file — make sure you exported from this tracker.", "error");
+      showToast(
+        "invalid file — make sure you exported from this tracker.",
+        "error",
+      );
     }
   };
   reader.readAsText(file);
@@ -2285,9 +1815,7 @@ function onSearchInput() {
     return;
   }
 
-  const all = getAllProblems()
-    .concat(getAllCFProblems())
-    .concat(getAllLCProblems());
+  const all = getAllProblems().concat(getAllLCProblems());
   const c = getCompleted();
   const hits = all
     .filter(
@@ -2347,7 +1875,250 @@ function onSearchInput() {
 /* ================================================================
    INITIALIZATION
    ================================================================ */
+/* ================================================================
+   MAIN APP DASHBOARD (overview across all modules)
+   ================================================================ */
+function buildMainDashboard() {
+  const el = document.getElementById("main-dashboard-inner");
+  if (!el) return;
+
+  const solved = getSolvedCount(),
+    total = getTotalProblems();
+  const dsaPct = total ? Math.round((solved / total) * 100) : 0;
+
+  const puzzlesSolved = DB.get("puzzles_solved") || {};
+  const puzzleTotal =
+    typeof PUZZLES_DATA !== "undefined" ? PUZZLES_DATA.puzzles.length : 12;
+  const puzzleDone = Object.values(puzzlesSolved).filter(Boolean).length;
+  const puzzlePct = puzzleTotal
+    ? Math.round((puzzleDone / puzzleTotal) * 100)
+    : 0;
+
+  const aptResults = DB.get("aptitude") || {};
+  let aptTotal = 1125;
+  if (typeof getAllAptitudeQuestions === "function") {
+    aptTotal = getAllAptitudeQuestions().length;
+  }
+  const aptAttempted = Object.keys(aptResults).length;
+  const aptPct = aptTotal ? Math.round((aptAttempted / aptTotal) * 100) : 0;
+
+  const notesList = getGlobalNotes();
+  const streak = getStreakCount();
+  const bestStreak = getLongestStreak();
+  const todaySolved = getTodaySolveCount();
+  const apps = (typeof getApplications === "function") ? getApplications() : (DB.get("applications") || []);
+  const activeApps = apps.filter(
+    (a) => a && !a.archived && a.status !== "Rejected",
+  ).length;
+
+  el.innerHTML = `
+    <div class="dash-greeting">
+      <h1>Hello.</h1>
+      <p>placement preparation workspace — dsa, core cs, aptitude &amp; applications</p>
+    </div>
+
+    <!-- Primary stats grid matching DSA dashboard -->
+    <div class="stats-grid">
+      <div class="stat-card" onclick="showView('dsa-dashboard')" style="cursor:pointer">
+        <div class="stat-label">dsa solved</div>
+        <div class="stat-num" style="color:var(--accent)">${solved}</div>
+        <div class="stat-total">of ${total} problems (${dsaPct}%)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">current streak</div>
+        <div class="stat-num" style="color:var(--text)">${streak}</div>
+        <div class="stat-total">days active</div>
+      </div>
+      <div class="stat-card" onclick="showView('puzzles')" style="cursor:pointer">
+        <div class="stat-label">puzzles cracked</div>
+        <div class="stat-num" style="color:#ff6b6b">${puzzleDone}</div>
+        <div class="stat-total">of ${puzzleTotal} brain-teasers</div>
+      </div>
+      <div class="stat-card" onclick="showView('notes')" style="cursor:pointer">
+        <div class="stat-label">notes captured</div>
+        <div class="stat-num" style="color:#c4b5fd">${notesList.length}</div>
+        <div class="stat-total">learnings &amp; insights</div>
+      </div>
+    </div>
+
+    <!-- Secondary stats row -->
+    <div class="stats-grid stats-grid-sm" style="margin-top:-24px;margin-bottom:28px">
+      <div class="stat-card stat-card-sm">
+        <div class="stat-label">today's solves</div>
+        <div class="stat-num stat-num-sm" style="color:#51cf66">${todaySolved}</div>
+        <div class="stat-total">completed</div>
+      </div>
+      <div class="stat-card stat-card-sm">
+        <div class="stat-label">best streak</div>
+        <div class="stat-num stat-num-sm" style="color:var(--text)">${bestStreak}</div>
+        <div class="stat-total">days</div>
+      </div>
+      <div class="stat-card stat-card-sm" onclick="showView('applications')" style="cursor:pointer">
+        <div class="stat-label">active applications</div>
+        <div class="stat-num stat-num-sm" style="color:#ffa94d">${activeApps}</div>
+        <div class="stat-total">in pipeline</div>
+      </div>
+    </div>
+
+    <!-- Quick action buttons -->
+    <div class="dash-actions" style="margin-bottom:36px">
+      <button class="timer-btn" onclick="openTimer(null)" style="font-size:11px;padding:6px 14px">
+        ⏱ start focus timer
+      </button>
+      <button class="export-btn" onclick="showView('dsa-dayplan')">▦ day roadmap</button>
+      <button class="export-btn" onclick="showView('dsa-revision')">⟳ revision queue</button>
+      <button class="export-btn" onclick="showView('notes')">quick note</button>
+      <button class="export-btn" onclick="openSearch()">⌕ search (ctrl+k)</button>
+    </div>
+
+    <!-- Section 1: Practice -->
+    <div class="dash-section-title">practice &amp; problem solving</div>
+    <div class="module-grid">
+      <div class="module-card" onclick="showView('dsa-dashboard')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#e8a838;margin-right:8px">&lt;/&gt;</span>DSA Tracker</div>
+          <div class="module-card-stat" style="color:#e8a838">${dsaPct}%</div>
+        </div>
+        <div class="module-card-stat-label">${solved} of ${total} problems completed</div>
+        <div class="module-card-bar-bg"><div class="module-card-bar-fill" style="width:${dsaPct}%;background:#e8a838"></div></div>
+      </div>
+
+      <div class="module-card" onclick="showView('puzzles')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#ff6b6b;margin-right:8px">${ICON_SVG.puzzle}</span>Logic &amp; Puzzles</div>
+          <div class="module-card-stat" style="color:#ff6b6b">${puzzlePct}%</div>
+        </div>
+        <div class="module-card-stat-label">${puzzleDone} of ${puzzleTotal} brain-teasers cracked</div>
+        <div class="module-card-bar-bg"><div class="module-card-bar-fill" style="width:${puzzlePct}%;background:#ff6b6b"></div></div>
+      </div>
+
+      <div class="module-card" onclick="showView('aptitude')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#7dd3fc;margin-right:8px">${ICON_SVG.brain}</span>Aptitude Bank</div>
+          <div class="module-card-stat" style="color:#7dd3fc">${aptPct}%</div>
+        </div>
+        <div class="module-card-stat-label">${aptAttempted} of ${aptTotal} questions attempted</div>
+        <div class="module-card-bar-bg"><div class="module-card-bar-fill" style="width:${aptPct}%;background:#7dd3fc"></div></div>
+      </div>
+    </div>
+
+    <!-- Section 2: Knowledge -->
+    <div class="dash-section-title" style="margin-top:12px">engineering knowledge</div>
+    <div class="module-grid">
+      <div class="module-card" onclick="showView('cs')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#51cf66;margin-right:8px">${ICON_SVG.book}</span>CS Fundamentals</div>
+          <div class="module-card-stat" style="color:#51cf66">5 subjects</div>
+        </div>
+        <div class="module-card-stat-label">OS, DBMS, Computer Networks, OOP &amp; DSA Core</div>
+      </div>
+
+      <div class="module-card" onclick="showView('systemdesign')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#818cf8;margin-right:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg></span>System Design</div>
+          <div class="module-card-stat" style="color:#818cf8">12 domains</div>
+        </div>
+        <div class="module-card-stat-label">HLD, scalability, distributed patterns &amp; problems</div>
+      </div>
+
+      <div class="module-card" onclick="showView('hr')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#a78bfa;margin-right:8px">${ICON_SVG.users}</span>HR &amp; STAR Behavioral</div>
+          <div class="module-card-stat" style="color:#a78bfa">50 prompts</div>
+        </div>
+        <div class="module-card-stat-label">HR questions &amp; reusable STAR story bank</div>
+      </div>
+    </div>
+
+    <!-- Section 3: Workspace -->
+    <div class="dash-section-title" style="margin-top:12px">workspace &amp; tracker</div>
+    <div class="module-grid">
+      <div class="module-card" onclick="showView('notes')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#fbbf24;margin-right:8px">${ICON_SVG.file}</span>Notes &amp; Sticky Board</div>
+          <div class="module-card-stat" style="color:#fbbf24">${notesList.length} notes</div>
+        </div>
+        <div class="module-card-stat-label">Rich text, visual sticky board &amp; reminders</div>
+      </div>
+
+      <div class="module-card" onclick="showView('research')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#2dd4bf;margin-right:8px">${ICON_SVG.flask}</span>Research Tracker</div>
+          <div class="module-card-stat" style="color:#2dd4bf">Literature DB</div>
+        </div>
+        <div class="module-card-stat-label">Methodologies, key findings &amp; research gaps</div>
+      </div>
+
+      <div class="module-card" onclick="showView('applications')">
+        <div class="module-card-top">
+          <div class="module-card-title"><span style="color:#ffa94d;margin-right:8px">${ICON_SVG.briefcase}</span>Application Pipeline</div>
+          <div class="module-card-stat" style="color:#ffa94d">${activeApps} active</div>
+        </div>
+        <div class="module-card-stat-label">Job applications, referrals &amp; status tracking</div>
+      </div>
+    </div>
+
+    ${typeof renderDashboardRemindersWidget === "function" ? renderDashboardRemindersWidget() : ""}
+  `;
+}
+
+/* ================================================================
+   PUZZLES  (logic & story puzzles)
+   ================================================================ */
+function buildPuzzlesView() {
+  const container = document.getElementById("puzzles-list");
+  if (!container) return;
+  if (typeof PUZZLES_DATA === "undefined") {
+    container.innerHTML = `<div class="module-placeholder">Puzzle data failed to load — make sure puzzles.js is included before app.js.</div>`;
+    return;
+  }
+  const solved = DB.get("puzzles_solved") || {};
+  container.innerHTML = PUZZLES_DATA.puzzles
+    .map((p) => {
+      const isSolved = !!solved[p.id];
+      return `
+      <div class="puzzle-card">
+        <div class="puzzle-card-category">${escHtml(p.category || "")}</div>
+        <div class="puzzle-card-title">${escHtml(p.title)}</div>
+        <div class="puzzle-card-question">${escHtml(p.question)}</div>
+        <button class="puzzle-reveal-btn" onclick="togglePuzzleAnswer('${p.id}')">reveal answer</button>
+        <div class="puzzle-solved-toggle ${isSolved ? "solved" : ""}" id="puzzle-solved-${p.id}" onclick="togglePuzzleSolved('${p.id}')">
+          <span>${isSolved ? "✓ solved" : "mark as solved"}</span>
+        </div>
+        <div class="puzzle-answer-block" id="puzzle-answer-${p.id}">
+          <div class="puzzle-answer-label">answer</div>
+          <div class="puzzle-answer-text">${escHtml(p.answer)}</div>
+          <div class="puzzle-explanation-text">${escHtml(p.explanation || "")}</div>
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
+function togglePuzzleAnswer(id) {
+  const block = document.getElementById("puzzle-answer-" + id);
+  if (block) block.classList.toggle("open");
+}
+
+function togglePuzzleSolved(id) {
+  const solved = DB.get("puzzles_solved") || {};
+  solved[id] = !solved[id];
+  DB.set("puzzles_solved", solved);
+  if (typeof syncAfterChange === "function") syncAfterChange();
+  const el = document.getElementById("puzzle-solved-" + id);
+  if (el) {
+    el.classList.toggle("solved", !!solved[id]);
+    el.innerHTML = `<span>${solved[id] ? "✓ solved" : "mark as solved"}</span>`;
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  // Restore sidebar state only on desktop
+  if (window.innerWidth >= 769 && localStorage.getItem("dsa_sidebar_collapsed") === "1") {
+    document.getElementById("sidebar")?.classList.add("collapsed");
+    document.body.classList.add("sidebar-collapsed");
+  }
+
   buildNav();
   showView("dashboard");
   updateProgress();
@@ -2366,6 +2137,7 @@ window.addEventListener("DOMContentLoaded", () => {
       closeTimer();
       closeDiffRatingPicker();
       closeNoteInsight();
+      closeMobSidebar();
     }
   });
 });

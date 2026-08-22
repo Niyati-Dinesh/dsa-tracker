@@ -58,17 +58,119 @@ body {
   display: flex;
 }
 
-/* ── UNIVERSAL VIEW INNER WRAPPER ── */
-.view-inner {
-  padding: 40px 48px;
-  max-width: 900px;
-  width: 100%;
+/* ================================================================
+   GLOBAL SELECT & DROPDOWN MENU ENHANCEMENTS
+   ================================================================ */
+
+select,
+.hr-select,
+.apt-select,
+.res-select,
+.note-lang-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: #16171b !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888899' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 11px 11px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 7px !important;
+  color: #e2e8f0 !important;
+  font-family: var(--sans), system-ui, -apple-system, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 450 !important;
+  line-height: 1.4 !important;
+  padding: 6px 30px 6px 11px !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
 }
 
-/* ── SIDEBAR (DESKTOP DEFAULT) ── */
+select:hover,
+.hr-select:hover,
+.apt-select:hover,
+.res-select:hover,
+.note-lang-select:hover {
+  background-color: #1c1d24 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+}
+
+select:focus,
+.hr-select:focus,
+.apt-select:focus,
+.res-select:focus,
+.note-lang-select:focus {
+  background-color: #1a1b22 !important;
+  border-color: #818cf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23818cf8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+}
+
+select option,
+.hr-select option,
+.apt-select option,
+.res-select option,
+.note-lang-select option {
+  background-color: #141519 !important;
+  color: #e2e8f0 !important;
+  font-family: var(--sans), system-ui, -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  border: none !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked,
+.hr-select option:checked,
+.apt-select option:checked,
+.res-select option:checked {
+  background-color: #232530 !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+}
+
+select optgroup,
+.hr-select optgroup,
+.apt-select optgroup,
+.res-select optgroup {
+  background-color: #0f1013 !important;
+  color: #71717a !important;
+  font-family: var(--mono), monospace !important;
+  font-size: 10.5px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 8px 10px 4px !important;
+  font-weight: 600 !important;
+}
+
+/* ── UNIVERSAL VIEW INNER WRAPPER (BALANCED EQUAL MARGINS) ── */
+.view-inner {
+  padding: 40px 32px 60px;
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  transition: max-width 0.25s ease, padding 0.25s ease;
+}
+
+body.sidebar-collapsed .view-inner,
+body.sidebar-collapsed #cf-view-inner,
+body.sidebar-collapsed #lc-view-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── SIDEBAR (DESKTOP & DRAWER) ── */
 #sidebar {
-  width: 240px;
-  min-width: 240px;
+  width: 250px;
+  min-width: 250px;
   background: var(--bg2);
   border-right: 1px solid var(--line);
   display: flex;
@@ -77,10 +179,15 @@ body {
   position: sticky;
   top: 0;
   overflow-y: auto;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
 }
 
 .sidebar-header {
-  padding: 24px 20px 20px;
+  padding: 20px 18px 16px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -101,32 +208,116 @@ body {
   text-transform: uppercase;
 }
 
+/* Sidebar toggle buttons */
+.sidebar-toggle-btn {
+  background: none;
+  border: 1px solid var(--line2);
+  color: var(--muted);
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-toggle-btn:hover {
+  background: var(--bg3);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.sidebar-mob-close {
+  display: none;
+}
+
+.mob-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--line2);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sidebar-reopen-btn {
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 99;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  color: var(--text);
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+}
+.sidebar-reopen-btn:hover {
+  background: var(--bg3);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+body.sidebar-collapsed .sidebar-reopen-btn {
+  display: flex;
+}
+
+/* Mobile sidebar backdrop overlay */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.sidebar-backdrop.open {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .sidebar-nav {
-  padding: 12px 0;
+  padding: 10px 0;
   flex: 1;
 }
 
 .nav-section {
-  padding: 8px 20px 4px;
+  padding: 10px 18px 4px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 9.5px;
   color: var(--muted);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
+/* Base Top-level Navigation Item */
 .nav-topic {
-  padding: 7px 20px;
+  margin: 1px 6px 1px 4px;
+  padding: 8px 12px 8px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
   color: var(--mid);
-  transition:
-    color 0.15s,
-    background 0.15s;
-  border-left: 2px solid transparent;
+  transition: color 0.15s, background 0.15s;
+  border-radius: 7px;
   font-size: 13px;
+  font-weight: 400;
 }
 
 .nav-topic:hover {
@@ -134,35 +325,32 @@ body {
   background: var(--bg3);
 }
 
-.nav-topic.active {
-  color: var(--accent);
-  border-left-color: var(--accent);
-  background: rgba(200, 184, 154, 0.04);
-}
-
 .nav-icon {
-  font-size: 12px;
-  opacity: 0.7;
+  font-size: 13px;
+  opacity: 0.9;
   font-family: var(--mono);
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.nav-sub {
-  padding: 5px 20px 5px 42px;
-  font-size: 12px;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* ── ACTIVE STATE ──────────────────────────────────────────────
+   One consistent, lighter highlight for every nav item. Each
+   item's icon already carries its own module color (set inline),
+   so the active state itself just needs to read clearly against
+   the sidebar without a dozen slightly-different tints. ── */
+.nav-topic.active,
+.nav-collapsible-topic.active {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 500;
 }
-
-.nav-sub:hover {
-  color: var(--mid);
-}
-
-.nav-sub.active {
-  color: var(--accent2);
+#topic-nav .nav-sub.active {
+  color: var(--text);
+  font-weight: 500;
 }
 
 .sidebar-footer {
@@ -3417,15 +3605,6 @@ textarea.modal-note-area::placeholder {
 #mob-header {
   display: none;
 }
-#mob-tabs {
-  display: none;
-}
-.mob-drawer {
-  display: none;
-}
-#mob-drawer-overlay {
-  display: none;
-}
 .nav-topic-cf:hover {
   background: rgba(106, 122, 204, 0.04);
 }
@@ -3454,9 +3633,66 @@ textarea.modal-note-area::placeholder {
     flex-direction: column;
   }
 
-  /* ── Sidebar Extraction ── */
-  #sidebar {
+  /* ── Mobile Header & Controls ── */
+  .mob-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-toggle-btn {
+    display: none;
+  }
+
+  .sidebar-reopen-btn {
     display: none !important;
+  }
+
+  .sidebar-mob-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--line2);
+    color: var(--muted);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .sidebar-mob-close:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
+  /* ── Off-Canvas Slide-Out Mobile Sidebar ── */
+  #sidebar,
+  #sidebar.collapsed {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none !important;
+    margin-left: 0 !important;
+    background: var(--bg2) !important;
+    border-right: 1px solid var(--line2) !important;
+    overflow-y: auto !important;
+  }
+
+  #sidebar.mob-open,
+  #sidebar.mob-open.collapsed {
+    transform: translateX(0) !important;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.9) !important;
   }
 
   /* ── Sticky Top Panel ── */
@@ -3467,14 +3703,15 @@ textarea.modal-note-area::placeholder {
     left: 0;
     right: 0;
     z-index: 300;
-    height: 50px;
+    height: 52px;
     background: rgba(14, 14, 14, 0.96);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
     align-items: center;
     padding: 0 12px;
-    gap: 12px;
+    gap: 10px;
+    justify-content: space-between;
   }
 
   .mob-logo {
@@ -3486,7 +3723,6 @@ textarea.modal-note-area::placeholder {
   }
 
   .mob-progress {
-    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -3500,7 +3736,7 @@ textarea.modal-note-area::placeholder {
   }
 
   .mob-bar {
-    width: 50px;
+    width: 44px;
     height: 3px;
     background: var(--line2);
     border-radius: 2px;
@@ -3519,155 +3755,57 @@ textarea.modal-note-area::placeholder {
     width: 100%;
     height: auto;
     overflow: visible;
-    padding-top: 50px;
-    padding-bottom: 70px;
+    padding-top: 54px;
+    padding-bottom: 24px;
   }
 
   /* ── FIXED EDGE PROFILE ALIGNMENT ── */
   .view-inner,
   #cf-view-inner,
   #lc-view-inner {
-    padding: 50px 32px 28px !important;
+    padding: 24px 16px 40px !important;
     max-width: 100% !important;
     box-sizing: border-box;
   }
 
-  /* ── Tab Navigator Base ── */
-  #mob-tabs {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 300;
-    height: 56px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(14, 14, 14, 0.97);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid var(--line);
-    align-items: stretch;
-  }
-
-  .mob-tab {
-    flex: 1;
-    display: flex;
+  /* ── Mobile Dashboard Hero & Cards ── */
+  .dash-hero-banner {
+    padding: 18px 16px;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0 2px;
-    -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s;
-    font-family: var(--mono);
+    align-items: flex-start;
+    gap: 16px;
   }
 
-  .mob-tab.active {
-    color: var(--accent);
+  .dash-hero-title {
+    font-size: 22px;
   }
 
-  .mob-tab-icon {
-    font-size: 15px;
-    line-height: 1;
+  .dash-hero-metrics {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 
-  .mob-tab-label {
-    font-size: 9px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    line-height: 1;
+  .hero-metric-chip {
+    min-width: 0;
+    padding: 8px 8px;
   }
 
-  /* ── Context Selector Drawer ── */
-  .mob-drawer {
-    display: block;
-    position: fixed;
-    bottom: -100%;
-    left: 0;
-    right: 0;
-    z-index: 400;
-    background: var(--bg2);
-    border-top: 1px solid var(--line2);
-    border-radius: 16px 16px 0 0;
-    padding: 8px 0 calc(16px + env(safe-area-inset-bottom, 0px));
-    max-height: 70vh;
-    overflow-y: auto;
-    transition: bottom 0.3s cubic-bezier(0.32, 0, 0.67, 0);
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .mob-drawer.open {
-    bottom: 0;
-    transition: bottom 0.3s cubic-bezier(0.33, 1, 0.68, 1);
-  }
-
-  .mob-drawer-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--line2);
-    border-radius: 2px;
-    margin: 4px auto 12px;
-  }
-
-  .mob-drawer-title {
-    font-family: var(--serif);
-    font-size: 18px;
-    color: var(--text);
-    padding: 0 20px 12px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 8px;
-  }
-
-  .mob-drawer-section {
-    font-family: var(--mono);
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 10px 20px 4px;
-  }
-
-  .mob-drawer-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 20px;
+  .hmc-value {
     font-size: 14px;
-    color: var(--mid);
-    cursor: pointer;
-    transition:
-      background 0.12s,
-      color 0.12s;
-    -webkit-tap-highlight-color: transparent;
   }
 
-  .mob-drawer-item:active {
-    background: var(--bg3);
-    color: var(--text);
+  .module-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
-  .mob-drawer-icon {
-    font-family: var(--mono);
-    font-size: 12px;
-    width: 18px;
-    text-align: center;
-    flex-shrink: 0;
+  .index-nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
 
-  #mob-drawer-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 350;
-    background: rgba(0, 0, 0, 0.5);
-  }
-  #mob-drawer-overlay.open {
-    display: block;
-  }
 
   /* ── Mobile Metrics Blocks ── */
   .dash-greeting {
@@ -3983,19 +4121,6 @@ textarea.modal-note-area::placeholder {
     font-size: 20px;
   }
 
-  .mob-tab-label {
-    display: none;
-  }
-  .mob-tab-icon {
-    font-size: 18px;
-  }
-  #mobile-tab-bar {
-    height: 52px;
-  }
-  #main {
-    padding-bottom: 58px;
-  }
-
   .problem-row,
   .problem-row-cf {
     grid-template-columns: 26px 1fr 40px 44px 40px 22px;
@@ -4018,14 +4143,17 @@ textarea.modal-note-area::placeholder {
    DESKTOP VIEW RE-ALIGNMENT (≥ 769px)
    ============================================================ */
 @media (min-width: 769px) {
-  #mobile-tab-bar {
+  #mob-header,
+  .mob-menu-btn,
+  .sidebar-mob-close,
+  #sidebar-backdrop {
     display: none !important;
   }
 
   html,
   body {
     height: 100vh;
-    overflow: hidden; /* This completely nukes the browser window scrollbar */
+    overflow: hidden;
   }
 
   body {
@@ -4035,22 +4163,34 @@ textarea.modal-note-area::placeholder {
   #sidebar {
     position: sticky;
     top: 0;
-    width: 240px;
-    min-width: 240px;
+    width: 250px;
+    min-width: 250px;
     height: 100vh;
     flex-direction: column;
     border-right: 1px solid var(--line);
     border-bottom: none;
     overflow-y: auto;
     background: var(--bg2);
+    transform: none !important;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  #sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    border-right: none !important;
+  }
+
+  .sidebar-toggle-btn {
+    display: flex;
   }
 
   .sidebar-header {
-    padding: 24px 20px 20px;
+    padding: 20px 18px 16px;
     border-bottom: 1px solid var(--line);
-    border-right: none;
-    height: auto;
-    display: block;
   }
 
   .logo {
@@ -4063,10 +4203,8 @@ textarea.modal-note-area::placeholder {
 
   .sidebar-nav {
     display: block;
-    padding: 12px 0;
+    padding: 10px 0;
     flex: 1;
-    overflow-x: unset;
-    white-space: unset;
   }
 
   .sidebar-footer {
@@ -4097,7 +4235,7 @@ textarea.modal-note-area::placeholder {
     padding-top: 0;
     padding-bottom: 0;
     height: 100vh;
-    overflow-y: auto; /* Keeps scrolling contained inside your custom-styled dashboard panel */
+    overflow-y: auto;
   }
 
   .modal-overlay {
@@ -4141,16 +4279,21 @@ textarea.modal-note-area::placeholder {
     font-size: 10px;
     padding: 2px 7px;
   }
-  
 
-  #view-dashboard,
-  #view-topic > div,
-  #view-dayplan > div,
-  #view-notes > div,
-  #view-codeforces > div,
-  #view-leetcode > div {
-    padding: 40px 48px !important;
-    max-width: 900px !important;
+  .view-inner,
+  #cf-view-inner,
+  #lc-view-inner {
+    padding: 40px 32px 60px !important;
+    max-width: 1040px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box;
+  }
+
+  body.sidebar-collapsed .view-inner,
+  body.sidebar-collapsed #cf-view-inner,
+  body.sidebar-collapsed #lc-view-inner {
+    max-width: 1100px !important;
+    margin: 0 auto !important;
   }
 
   .hint-row {
@@ -4162,4 +4305,289 @@ textarea.modal-note-area::placeholder {
   .cf-tags-row {
     padding: 8px 60px 10px;
   }
+}
+
+/* ── Placeholder for in-progress placement modules ─────────────── */
+.module-placeholder {
+  margin-top: 14px;
+  padding: 22px 20px;
+  border: 1px dashed var(--line2);
+  border-radius: 10px;
+  background: var(--bg2);
+  color: var(--mid);
+  font-family: "DM Mono", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 560px;
+}
+
+/* ── Collapsible nav-topic-style group headers (DSA Tracker / Topics) ──
+   Indentation is expressed as margin-left (how far the whole pill sits
+   from the sidebar edge) rather than padding-left on a full-bleed row,
+   so the active/hover highlight itself nests visually under its parent
+   group instead of stretching back out to the sidebar's left edge. ── */
+.nav-collapsible-topic {
+  margin: 1px 6px 1px 4px;
+  padding: 8px 12px 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--mid);
+  font-size: 13px;
+  font-weight: 400;
+  border-radius: 7px;
+  transition: color 0.15s, background 0.15s;
+  user-select: none;
+}
+.nav-collapsible-topic:hover {
+  color: var(--text);
+  background: var(--bg3);
+}
+.nav-collapsible-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-collapsible-topic .nav-arrow {
+  font-size: 9px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.nav-collapsible-topic.collapsed .nav-arrow {
+  transform: rotate(-90deg);
+}
+
+/* Level 2 inside DSA Tracker group (Day Plan / Patterns / Revision Queue) */
+.nav-topic.nav-sub-top {
+  margin-left: 20px;
+  padding-left: 12px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Level 2 Topics collapsible header */
+.nav-collapsible-topic.nested {
+  margin-left: 20px;
+  padding-left: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--mid);
+}
+.nav-collapsible-topic.nested:hover {
+  color: var(--text);
+}
+
+/* Level 3 items inside #topic-nav (Arrays & Strings, Linked Lists, etc.) */
+#topic-nav .nav-topic {
+  margin-left: 34px;
+  padding: 7px 12px 7px 12px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* Level 4 subtopics (Two Pointers, Sliding Window, etc.) — text-only
+   emphasis on active/hover, already nested via padding so it doesn't
+   need its own boxed highlight. */
+#topic-nav .nav-sub {
+  padding: 5px 18px 5px 60px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#topic-nav .nav-sub:hover {
+  color: var(--mid);
+}
+
+/* ── Clean Main App Dashboard ──────── */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.module-card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.module-card:hover {
+  background: var(--bg3);
+  border-color: var(--line2);
+  transform: translateY(-1px);
+}
+
+.module-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.module-card-title {
+  font-size: 13.5px;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.module-card-stat {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.module-card-stat-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.module-card-bar-bg {
+  margin-top: 10px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bg4);
+  overflow: hidden;
+}
+
+.module-card-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.4s ease;
+}
+
+.module-card-soon {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+}
+
+.reminders-empty {
+  padding: 18px 20px;
+  border: 1px dashed var(--line2);
+  border-radius: 10px;
+  background: var(--bg2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg2);
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+
+.reminder-when {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── Puzzles module ─────────────────────────────────────────────── */
+.puzzle-card {
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+.puzzle-card-title {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.puzzle-card-question {
+  font-size: 13px;
+  color: var(--mid);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.puzzle-card-category {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.puzzle-reveal-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.puzzle-reveal-btn:hover {
+  background: var(--bg3);
+}
+.puzzle-answer-block {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: none;
+}
+.puzzle-answer-block.open {
+  display: block;
+}
+.puzzle-answer-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--green-text, var(--accent));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+.puzzle-answer-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+.puzzle-explanation-text {
+  font-size: 12.5px;
+  color: var(--mid);
+  line-height: 1.6;
+}
+.puzzle-solved-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.puzzle-solved-toggle.solved {
+  color: var(--green-text, #7ab88a);
 }
