@@ -295,25 +295,99 @@
 
 /* ── Responsive ── */
 @media (max-width: 860px) {
-  .cs-layout {
-    grid-template-columns: 1fr;
+  .cs-container {
+    padding: 16px 12px 60px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
+
+  .cs-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .cs-header .hr-btn-primary {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .cs-layout {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
   .cs-sidebar {
-    position: static;
-    max-height: 260px;
+    position: static !important;
+    max-height: 220px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: var(--radius) !important;
+    padding: 12px 10px !important;
+  }
+
+  .cs-main {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .cs-topic-card {
+    padding: 16px 14px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .cs-radio-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  .cs-notes-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+    padding-bottom: 6px !important;
+    width: 100% !important;
+  }
+
+  .cs-note-tab-btn {
+    flex-shrink: 0 !important;
+  }
+
+  .cs-topic-card pre,
+  .cs-topic-card code,
+  .cs-topic-card table {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+    word-break: break-word !important;
+  }
+
+  .cs-q-top {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  .cs-q-card {
+    padding: 12px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
-@media (max-width: 640px) {
-  .cs-container {
-    padding: 16px 12px 60px;
-    max-width: 100%;
-    box-sizing: border-box;
+@media (max-width: 480px) {
+  .cs-title {
+    font-size: 22px;
   }
-  .cs-topic-card {
-    padding: 14px 14px;
-  }
-  .cs-q-card {
-    padding: 12px 12px;
+  .cs-topic-title {
+    font-size: 19px;
   }
 }

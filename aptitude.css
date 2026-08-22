@@ -740,11 +740,29 @@
   background: var(--bg3);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 9px 13px;
-  margin-bottom: 7px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
   font-size: 13px;
   color: var(--text);
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── KaTeX Mobile Responsiveness ── */
+.katex-display {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 6px 0 !important;
+  margin: 0.4em 0 !important;
+}
+
+.katex {
+  max-width: 100% !important;
+  font-size: 1.05em !important;
 }
 
 .apt-notes-textarea {
@@ -768,7 +786,7 @@
   box-shadow: 0 0 0 3px var(--apt-pastel-tint);
 }
 
-/* ── Modal Architecture (Explicitly visible on both mobile and desktop) ── */
+/* ── Modal Architecture ── */
 .apt-modal-overlay {
   display: flex !important;
   position: fixed !important;
@@ -803,55 +821,84 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Responsive adjustments ── */
+/* ── Responsive adjustments (≤ 768px & ≤ 480px) ── */
 @media (max-width: 768px) {
   .apt-container {
-    padding: 16px 12px 60px;
-    max-width: 100%;
-    box-sizing: border-box;
+    padding: 16px 12px 60px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   .apt-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
   }
   .apt-header-actions {
-    width: 100%;
-    display: flex;
-    gap: 6px;
+    width: 100% !important;
+    display: flex !important;
+    gap: 6px !important;
   }
   .apt-header-actions button {
-    flex: 1;
-    justify-content: center;
+    flex: 1 !important;
+    justify-content: center !important;
   }
   .apt-tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-    padding-bottom: 4px;
-    gap: 4px;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    padding-bottom: 4px !important;
+    gap: 4px !important;
   }
   .apt-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
   }
   .apt-pattern-grid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 8px !important;
   }
   .apt-pattern-card {
-    padding: 12px 12px;
-    min-height: 80px;
+    padding: 12px 12px !important;
+    min-height: 80px !important;
   }
-  .apt-handbook-layout {
-    grid-template-columns: 1fr;
+  .apt-handbook-layout,
+  .apt-practice-layout {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
   }
-  .apt-handbook-nav {
-    position: static;
-    max-height: 200px;
+  .apt-handbook-nav,
+  .apt-practice-nav {
+    position: static !important;
+    max-height: 180px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: var(--radius) !important;
+  }
+  .apt-handbook-content,
+  .apt-practice-content {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .apt-handbook-block {
+    padding: 14px 14px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  .apt-handbook-formula-item {
+    padding: 8px 10px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
   .apt-practice-box {
-    padding: 14px 12px;
+    padding: 14px 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   .apt-modal-card {
     width: calc(100vw - 24px) !important;
@@ -863,6 +910,9 @@
 
 @media (max-width: 480px) {
   .apt-stats-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .apt-title {
+    font-size: 22px;
   }
 }
