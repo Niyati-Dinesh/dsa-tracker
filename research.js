@@ -18,7 +18,7 @@ let resSortDir = "desc";
 let expandedResId = null;
 
 function getResearchPapers() {
-  const stored = DB.get("research_papers");
+  const stored = DB.get("research_papers") || DB.get("research");
   if (stored && Array.isArray(stored)) return stored;
   const seed = (typeof RESEARCH_DATA !== "undefined" && Array.isArray(RESEARCH_DATA)) ? RESEARCH_DATA : [];
   return seed;

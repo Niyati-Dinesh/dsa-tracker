@@ -1911,6 +1911,8 @@ function buildMainDashboard() {
     (a) => a && !a.archived && a.status !== "Rejected",
   ).length;
 
+  const resPapers = (typeof getResearchPapers === "function") ? getResearchPapers() : (DB.get("research_papers") || []);
+
   el.innerHTML = `
     <div class="dash-greeting">
       <h1>Hello.</h1>
@@ -2044,7 +2046,7 @@ function buildMainDashboard() {
       <div class="module-card" onclick="showView('research')">
         <div class="module-card-top">
           <div class="module-card-title"><span style="color:#2dd4bf;margin-right:8px">${ICON_SVG.flask}</span>Research Tracker</div>
-          <div class="module-card-stat" style="color:#2dd4bf">Literature DB</div>
+          <div class="module-card-stat" style="color:#2dd4bf">${resPapers.length} papers</div>
         </div>
         <div class="module-card-stat-label">Methodologies, key findings &amp; research gaps</div>
       </div>
