@@ -407,10 +407,19 @@ function buildNav() {
 }
 
 /* ================================================================
-   VIEW ROUTING
+   VIEW ROUTING & SCROLL MANAGEMENT
    ================================================================ */
+function _scrollToTop() {
+  const main = document.getElementById("main");
+  if (main) main.scrollTop = 0;
+  window.scrollTo(0, 0);
+  if (document.documentElement) document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
+}
+
 function showView(name) {
   closeMobSidebar();
+  _scrollToTop();
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
@@ -423,7 +432,9 @@ function showView(name) {
   const navEl = document.getElementById("nav-" + name);
   if (navEl) navEl.classList.add("active");
 
-  document.getElementById("main").scrollTop = 0;
+  try {
+    localStorage.setItem("dsa_current_view", JSON.stringify({ type: "view", name: name }));
+  } catch (e) {}
 
   if (name === "dashboard") buildMainDashboard();
   if (name === "dsa-dashboard") buildDashboard();
@@ -457,16 +468,24 @@ function showTopic(topicId, scrollToSubtopic) {
   const navEl = document.getElementById("nav-topic-" + topicId);
   if (navEl) navEl.classList.add("active");
   buildTopicView(topicId);
-  document.getElementById("main").scrollTop = 0;
+
   if (scrollToSubtopic) {
     setTimeout(() => {
       const el = document.getElementById("subtopic-" + scrollToSubtopic);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
+  } else {
+    _scrollToTop();
   }
+
+  try {
+    localStorage.setItem("dsa_current_view", JSON.stringify({ type: "topic", topicId: topicId, subtopic: scrollToSubtopic || null }));
+  } catch (e) {}
 }
 
 function showCFTopic(topicId) {
+  closeMobSidebar();
+  _scrollToTop();
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
@@ -477,10 +496,15 @@ function showCFTopic(topicId) {
   const navEl = document.getElementById("nav-cftopic-" + topicId);
   if (navEl) navEl.classList.add("active");
   buildPlatformTopicView("codeforces", topicId);
-  document.getElementById("main").scrollTop = 0;
+
+  try {
+    localStorage.setItem("dsa_current_view", JSON.stringify({ type: "cf_topic", topicId: topicId }));
+  } catch (e) {}
 }
 
 function showLCTopic(topicId) {
+  closeMobSidebar();
+  _scrollToTop();
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
@@ -490,8 +514,46 @@ function showLCTopic(topicId) {
   document.getElementById("view-leetcode").classList.add("active");
   const navEl = document.getElementById("nav-lcsub-" + topicId);
   if (navEl) navEl.classList.add("active");
-  document.getElementById("main").scrollTop = 0;
   buildPlatformTopicView("leetcode", topicId);
+
+  try {
+    localStorage.setItem("dsa_current_view", JSON.stringify({ type: "lc_topic", topicId: topicId }));
+  } catch (e) {}
+}
+
+function restoreLastView() {
+  let saved = null;
+  try {
+    const raw = localStorage.getItem("dsa_current_view");
+    if (raw) saved = JSON.parse(raw);
+  } catch (e) {}
+
+  if (saved && saved.type === "topic" && saved.topicId) {
+    const dsaGroup = document.getElementById("dsa-group");
+    const dsaNav = document.getElementById("nav-dsa-dashboard");
+    if (dsaGroup) dsaGroup.classList.remove("collapsed");
+    if (dsaNav) dsaNav.classList.remove("collapsed");
+    const topicsGroup = document.getElementById("topics-group");
+    const topicsToggle = document.getElementById("nav-topics-group-toggle");
+    if (topicsGroup) topicsGroup.classList.remove("collapsed");
+    if (topicsToggle) topicsToggle.classList.remove("collapsed");
+
+    showTopic(saved.topicId, saved.subtopic);
+  } else if (saved && saved.type === "cf_topic" && saved.topicId) {
+    showCFTopic(saved.topicId);
+  } else if (saved && saved.type === "lc_topic" && saved.topicId) {
+    showLCTopic(saved.topicId);
+  } else if (saved && saved.type === "view" && saved.name) {
+    if (saved.name.startsWith("dsa-")) {
+      const dsaGroup = document.getElementById("dsa-group");
+      const dsaNav = document.getElementById("nav-dsa-dashboard");
+      if (dsaGroup) dsaGroup.classList.remove("collapsed");
+      if (dsaNav) dsaNav.classList.remove("collapsed");
+    }
+    showView(saved.name);
+  } else {
+    showView("dashboard");
+  }
 }
 
 /* ================================================================
@@ -2122,7 +2184,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   buildNav();
-  showView("dashboard");
+  restoreLastView();
   updateProgress();
   window._dsaAppReady = true;
   if (typeof initSync === "function") initSync();

@@ -203,6 +203,13 @@ body.sidebar-collapsed #lc-view-inner {
   letter-spacing: -0.3px;
   line-height: 1;
   margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+
+.logo:hover {
+  opacity: 0.85;
 }
 
 .logo-sub {
@@ -3725,6 +3732,13 @@ textarea.modal-note-area::placeholder {
     color: var(--accent);
     letter-spacing: -0.3px;
     flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .mob-logo:hover {
+    opacity: 0.85;
   }
 
   .mob-progress {
