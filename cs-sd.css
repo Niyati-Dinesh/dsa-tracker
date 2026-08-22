@@ -294,11 +294,26 @@
 .cs-freq-low { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
 
 /* ── Responsive ── */
+@media (max-width: 860px) {
+  .cs-layout {
+    grid-template-columns: 1fr;
+  }
+  .cs-sidebar {
+    position: static;
+    max-height: 260px;
+  }
+}
+
 @media (max-width: 640px) {
   .cs-container {
-    padding: 22px 14px 60px;
+    padding: 16px 12px 60px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .cs-topic-card {
-    padding: 18px 18px;
+    padding: 14px 14px;
+  }
+  .cs-q-card {
+    padding: 12px 12px;
   }
 }

@@ -806,18 +806,42 @@
 /* ── Responsive adjustments ── */
 @media (max-width: 768px) {
   .apt-container {
-    padding: 22px 14px 60px;
+    padding: 16px 12px 60px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .apt-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .apt-header-actions {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+  }
+  .apt-header-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+  .apt-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding-bottom: 4px;
+    gap: 4px;
   }
   .apt-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
   .apt-pattern-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 8px;
   }
   .apt-pattern-card {
     padding: 12px 12px;
-    min-height: 90px;
+    min-height: 80px;
   }
   .apt-handbook-layout {
     grid-template-columns: 1fr;
@@ -827,10 +851,18 @@
     max-height: 200px;
   }
   .apt-practice-box {
-    padding: 18px 16px;
+    padding: 14px 12px;
   }
   .apt-modal-card {
-    padding: 18px 18px !important;
-    max-height: 85vh !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 100% !important;
+    padding: 14px 14px 16px !important;
+    max-height: 88vh !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .apt-stats-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }

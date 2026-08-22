@@ -187,8 +187,13 @@ body.sidebar-collapsed #lc-view-inner {
 }
 
 .sidebar-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg2);
   padding: 20px 18px 16px;
   border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 
 .logo {
@@ -4182,6 +4187,9 @@ textarea.modal-note-area::placeholder {
     min-width: 0 !important;
     overflow: hidden !important;
     border-right: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   .sidebar-toggle-btn {
@@ -4189,8 +4197,13 @@ textarea.modal-note-area::placeholder {
   }
 
   .sidebar-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg2);
     padding: 20px 18px 16px;
     border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
   }
 
   .logo {
