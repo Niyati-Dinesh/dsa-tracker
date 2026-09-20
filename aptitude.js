@@ -404,11 +404,23 @@ function renderAptitudePractice(topicId = 1) {
     const statusText = res ? (isSolved ? "Solved" : "Wrong") : "Unattempted";
     const statusColor = res ? (isSolved ? "#4ade80" : "#f87171") : "var(--muted)";
     const statusVal = res ? (isSolved ? "correct" : "wrong") : "unattempted";
+    const selectedText = res?.selectedAnswer || res?.attempts?.[res.attempts.length - 1]?.selected;
+    const selectedIdx = res?.selectedOptionIndex !== undefined ? res.selectedOptionIndex : -1;
 
     const optionsHtml = (q.options || []).map((opt, optIdx) => {
       const letter = String.fromCharCode(65 + optIdx);
+      let optStateClass = "";
+      if (res) {
+        const isThisCorrect = opt.toString().trim() === q.correct_answer.toString().trim();
+        const isThisSelected = (selectedIdx === optIdx) || (selectedText && opt.toString().trim() === selectedText.toString().trim());
+        if (isThisCorrect) {
+          optStateClass = "correct";
+        } else if (isThisSelected && isWrong) {
+          optStateClass = "wrong";
+        }
+      }
       return `
-        <div class="apt-inline-option-item" id="apt-inline-opt-${q.id}-${optIdx}" onclick="selectInlineOption('${q.id}', ${optIdx})">
+        <div class="apt-inline-option-item ${optStateClass}" id="apt-inline-opt-${q.id}-${optIdx}" onclick="selectInlineOption('${q.id}', ${optIdx})">
           <span class="apt-option-letter">${letter}</span>
           <span class="apt-option-text">${formatAptMath(opt)}</span>
         </div>
@@ -449,7 +461,7 @@ function renderAptitudePractice(topicId = 1) {
         </div>
 
         <!-- Explanation Drawer -->
-        <div class="apt-inline-exp" id="apt-inline-exp-${q.id}" style="display:none">
+        <div class="apt-inline-exp" id="apt-inline-exp-${q.id}" style="${res ? 'display:block' : 'display:none'}">
           <div class="apt-explanation-header">
             <span style="color:var(--apt-pastel)">Explanation &amp; Solution (Correct: ${escHtml(q.correct_answer)}):</span>
           </div>
@@ -461,7 +473,7 @@ function renderAptitudePractice(topicId = 1) {
         <!-- Footer -->
         <div class="apt-mcq-footer">
           <button class="apt-link-btn" id="apt-exp-toggle-${q.id}" onclick="toggleInlineExplanation('${q.id}')">
-            Show Explanation
+            ${res ? 'Hide Explanation' : 'Show Explanation'}
           </button>
           <button class="apt-link-btn" style="color:var(--muted)" onclick="resetInlineQuestion('${q.id}')">
             Reset
@@ -1343,10 +1355,23 @@ function loadNextBankChunk() {
     const statusColor = res ? (isSolved ? "#4ade80" : "#f87171") : "var(--muted)";
     const statusVal = res ? (isSolved ? "correct" : "wrong") : "unattempted";
 
+    const selectedText = res?.selectedAnswer || res?.attempts?.[res.attempts.length - 1]?.selected;
+    const selectedIdx = res?.selectedOptionIndex !== undefined ? res.selectedOptionIndex : -1;
+
     const optionsHtml = (q.options || []).map((opt, optIdx) => {
       const letter = String.fromCharCode(65 + optIdx);
+      let optStateClass = "";
+      if (res) {
+        const isThisCorrect = opt.toString().trim() === q.correct_answer.toString().trim();
+        const isThisSelected = (selectedIdx === optIdx) || (selectedText && opt.toString().trim() === selectedText.toString().trim());
+        if (isThisCorrect) {
+          optStateClass = "correct";
+        } else if (isThisSelected && isWrong) {
+          optStateClass = "wrong";
+        }
+      }
       return `
-        <div class="apt-inline-option-item" id="apt-inline-opt-${q.id}-${optIdx}" onclick="selectInlineOption('${q.id}', ${optIdx})">
+        <div class="apt-inline-option-item ${optStateClass}" id="apt-inline-opt-${q.id}-${optIdx}" onclick="selectInlineOption('${q.id}', ${optIdx})">
           <span class="apt-option-letter">${letter}</span>
           <span class="apt-option-text">${formatAptMath(opt)}</span>
         </div>
@@ -1389,7 +1414,7 @@ function loadNextBankChunk() {
         </div>
 
         <!-- Explanation Drawer -->
-        <div class="apt-inline-exp" id="apt-inline-exp-${q.id}" style="display:none">
+        <div class="apt-inline-exp" id="apt-inline-exp-${q.id}" style="${res ? 'display:block' : 'display:none'}">
           <div class="apt-explanation-header">
             <span style="color:var(--apt-pastel)">Explanation &amp; Shortcut (Answer: ${escHtml(q.correct_answer)}):</span>
           </div>
@@ -1401,7 +1426,7 @@ function loadNextBankChunk() {
         <!-- Footer -->
         <div class="apt-mcq-footer">
           <button class="apt-link-btn" id="apt-exp-toggle-${q.id}" onclick="toggleInlineExplanation('${q.id}')">
-            Show Explanation
+            ${res ? 'Hide Explanation' : 'Show Explanation'}
           </button>
           <button class="apt-link-btn" style="color:var(--muted)" onclick="resetInlineQuestion('${q.id}')">
             Reset
@@ -1475,8 +1500,13 @@ function selectInlineOption(questionId, selectedIdx) {
   const results = getAptitudeResults();
   if (!results[q.id]) results[q.id] = { status: isCorrect ? "correct" : "wrong", attempts: [] };
   results[q.id].status = isCorrect ? "correct" : "wrong";
+  results[q.id].selectedAnswer = selectedText;
+  results[q.id].selectedOptionIndex = selectedIdx;
+  if (!Array.isArray(results[q.id].attempts)) results[q.id].attempts = [];
   results[q.id].attempts.push({
     isCorrect,
+    selected: selectedText,
+    selectedOptionIndex: selectedIdx,
     timeSpent: 5,
     timestamp: Date.now()
   });
@@ -1508,6 +1538,21 @@ function resetInlineQuestion(questionId) {
   const toggleBtn = document.getElementById(`apt-exp-toggle-${q.id}`);
   if (expEl) expEl.style.display = "none";
   if (toggleBtn) toggleBtn.textContent = "Show Explanation";
+
+  const statusEl = document.getElementById(`apt-inline-status-${q.id}`);
+  if (statusEl) {
+    statusEl.innerHTML = '<span style="color:var(--muted)">Unattempted</span>';
+  }
+
+  const card = document.getElementById(`apt-mcq-card-${q.id}`);
+  if (card) card.setAttribute("data-status", "unattempted");
+
+  const results = getAptitudeResults();
+  if (results[questionId]) {
+    delete results[questionId];
+    DB.set("aptitude", results);
+    if (typeof syncAfterChange === "function") syncAfterChange();
+  }
 }
 
 function filterQuestionManagerRows() {

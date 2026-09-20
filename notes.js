@@ -32,32 +32,190 @@ let currentNotesSearch = "";
 
 let activeQuillInstance = null;
 
-/* ── Clean Plaintext & Metadata Extractor for Cards ── */
-function extractNoteSummary(content) {
-  if (!content || !content.trim()) return { text: "", hasCode: false, hasLinks: false };
+/* ── Markdown Table Parser & Rich Note Formatter ── */
+function parseMarkdownTables(content) {
+  if (!content || !content.includes("|")) return content;
 
-  const hasCode = content.includes("<pre") || content.includes("class='ql-syntax'") || content.includes("class=\"ql-syntax\"");
+  // Split into lines preserving <br>, </p><p>, and \n delimiters
+  const lines = content.split(/(\r?\n|<br\s*\/?>|<\/p>\s*<p>)/gi);
+  const result = [];
+  let currentTable = [];
+
+  function isPipeRow(str) {
+    const clean = str.replace(/<[^>]*>/g, "").trim();
+    if (!clean.includes("|")) return false;
+    const cells = clean.split("|").filter((p, i, a) => {
+      if ((i === 0 || i === a.length - 1) && !p.trim()) return false;
+      return true;
+    });
+    return cells.length >= 2;
+  }
+
+  function isSeparator(str) {
+    const clean = str.replace(/<[^>]*>/g, "").trim();
+    return /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test(clean);
+  }
+
+  function parseCells(rowStr) {
+    const clean = rowStr.replace(/^<p[^>]*>/i, "").replace(/<\/p>$/i, "").trim();
+    const parts = clean.split("|");
+    const filtered = parts.filter((p, i, a) => {
+      if ((i === 0 || i === a.length - 1) && !p.trim()) return false;
+      return true;
+    });
+    return filtered.map(c => c.trim());
+  }
+
+  function flushTable() {
+    if (currentTable.length === 0) return;
+
+    let headerRow = null;
+    let alignments = [];
+    let dataRows = [];
+
+    if (currentTable.length >= 2 && isSeparator(currentTable[1])) {
+      headerRow = currentTable[0];
+      const sepParts = parseCells(currentTable[1]);
+      alignments = sepParts.map(s => {
+        const clean = s.replace(/<[^>]*>/g, "").trim();
+        if (clean.startsWith(":") && clean.endsWith(":")) return "center";
+        if (clean.endsWith(":")) return "right";
+        return "left";
+      });
+      dataRows = currentTable.slice(2);
+    } else {
+      headerRow = currentTable[0];
+      dataRows = currentTable.slice(1);
+    }
+
+    let tableHtml = '</p><div class="note-table-scroll"><table class="note-table">';
+    if (headerRow) {
+      const hCells = parseCells(headerRow);
+      tableHtml += '<thead><tr>';
+      hCells.forEach((c, idx) => {
+        const align = alignments[idx] || "left";
+        tableHtml += `<th style="text-align:${align}">${c}</th>`;
+      });
+      tableHtml += '</tr></thead>';
+    }
+    if (dataRows.length > 0) {
+      tableHtml += '<tbody>';
+      dataRows.forEach(r => {
+        if (isSeparator(r)) return;
+        const dCells = parseCells(r);
+        tableHtml += '<tr>';
+        dCells.forEach((c, idx) => {
+          const align = alignments[idx] || "left";
+          tableHtml += `<td style="text-align:${align}">${c}</td>`;
+        });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</tbody>';
+    }
+    tableHtml += '</table></div><p>';
+    result.push(tableHtml);
+    currentTable = [];
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const chunk = lines[i];
+    if (/^(\r?\n|<br\s*\/?>|<\/p>\s*<p>)$/i.test(chunk)) {
+      if (currentTable.length === 0) {
+        result.push(chunk);
+      }
+      continue;
+    }
+
+    if (isPipeRow(chunk)) {
+      currentTable.push(chunk);
+    } else {
+      if (currentTable.length > 0) {
+        flushTable();
+      }
+      result.push(chunk);
+    }
+  }
+
+  if (currentTable.length > 0) {
+    flushTable();
+  }
+
+  return result.join("").replace(/<p>\s*<\/p>/gi, "").replace(/^<\/p>/i, "").replace(/<p>$/i, "");
+}
+
+function formatNoteContent(content) {
+  if (!content || !content.trim()) return "";
+  let out = content;
+
+  // Convert markdown tables
+  out = parseMarkdownTables(out);
+
+  // Convert markdown bold: **bold** or __bold__
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+
+  // Convert markdown italic: *italic*
+  out = out.replace(/(^|[^*])\*([^*]+)\*([^*]|$)/g, '$1<em>$2</em>$3');
+
+  // Convert markdown images: ![alt](url)
+  out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="note-content-img" />');
+
+  // Convert markdown links: [label](url)
+  out = out.replace(/(^|[^!])\[([^\]]+)\]\(([^)]+)\)/g, '$1<a href="$3" target="_blank" rel="noopener noreferrer">$2</a>');
+
+  // Convert markdown inline code: `code`
+  out = out.replace(/`([^`]+)`/g, '<code class="note-inline-code">$1</code>');
+
+  return out;
+}
+
+function sanitizeAndFormatNoteContent(content) {
+  if (!content || !content.trim()) return "";
+  let formatted = formatNoteContent(content);
+  formatted = formatted
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "");
+  return formatted;
+}
+
+function renderNotePreviewHtml(content) {
+  if (!content || !content.trim()) {
+    return {
+      html: '<span class="note-empty-preview">empty note...</span>',
+      isEmpty: true,
+      hasCode: false,
+      hasLinks: false,
+      hasTable: false,
+      hasImage: false
+    };
+  }
+
+  const hasCode = content.includes("<pre") || content.includes("class='ql-syntax'") || content.includes('class="ql-syntax"') || content.includes("```");
   const hasLinks = content.includes("<a ") || content.includes("http://") || content.includes("https://");
+  const hasTable = content.includes("<table") || (content.includes("|") && content.split("|").length >= 3);
+  const hasImage = content.includes("<img") || content.includes("![");
 
-  // Strip all HTML tags, HTML entities, and markdown formatting for a clean textual preview
-  let text = content
-    .replace(/<pre[\s\S]*?<\/pre>/gi, " [code] ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/#/g, " ")
-    .replace(/\*/g, " ")
-    .replace(/>/g, " ")
-    .replace(/-/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  let html = sanitizeAndFormatNoteContent(content);
 
   return {
-    text: text.slice(0, 140),
+    html: html,
+    isEmpty: false,
     hasCode: hasCode,
-    hasLinks: hasLinks
+    hasLinks: hasLinks,
+    hasTable: hasTable,
+    hasImage: hasImage
+  };
+}
+
+function extractNoteSummary(content) {
+  const preview = renderNotePreviewHtml(content);
+  return {
+    text: (content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140),
+    html: preview.html,
+    hasCode: preview.hasCode,
+    hasLinks: preview.hasLinks,
+    hasTable: preview.hasTable,
+    hasImage: preview.hasImage
   };
 }
 
@@ -302,7 +460,7 @@ function renderStickyBoardView(container, notes) {
 function buildStickyCardHtml(note) {
   const d = new Date(note.updated || note.created || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const prioClass = note.priority && note.priority !== "none" ? "sticky-prio-" + note.priority : "";
-  const summary = extractNoteSummary(note.content);
+  const preview = renderNotePreviewHtml(note.content);
 
   let reminderHtml = "";
   if (note.reminder) {
@@ -322,8 +480,10 @@ function buildStickyCardHtml(note) {
   const tagsHtml = (note.tags || []).slice(0, 2).map(t => `<span class="sticky-tag-pill">#${escHtml(t)}</span>`).join("");
 
   const metaPills = [];
-  if (summary.hasCode) metaPills.push('<span class="sticky-meta-pill sticky-meta-code">&lt;/&gt; code</span>');
-  if (summary.hasLinks) metaPills.push('<span class="sticky-meta-pill sticky-meta-links">links</span>');
+  if (preview.hasCode) metaPills.push('<span class="sticky-meta-pill sticky-meta-code">&lt;/&gt; code</span>');
+  if (preview.hasTable) metaPills.push('<span class="sticky-meta-pill sticky-meta-table">table</span>');
+  if (preview.hasImage) metaPills.push('<span class="sticky-meta-pill sticky-meta-image">image</span>');
+  if (preview.hasLinks) metaPills.push('<span class="sticky-meta-pill sticky-meta-links">links</span>');
 
   return `
     <div class="sticky-card" id="sticky-${note.id}" data-id="${note.id}" draggable="true" onclick="openNoteViewModal('${note.id}')">
@@ -335,8 +495,8 @@ function buildStickyCardHtml(note) {
           </span>
         </div>
 
-        <div class="sticky-card-body ${!summary.text ? 'empty' : ''}">
-          ${summary.text ? escHtml(summary.text) : 'empty note...'}
+        <div class="sticky-card-body ${preview.isEmpty ? 'empty' : ''}">
+          ${preview.html}
         </div>
 
         ${metaPills.length ? `<div class="sticky-meta-pills-row">${metaPills.join("")}</div>` : ''}
@@ -425,7 +585,7 @@ function renderListView(container, notes) {
     const d = new Date(note.updated || note.created || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     const prioBadge = note.priority && note.priority !== 'none' ? `<span class="sticky-prio-badge sticky-prio-${note.priority}">${note.priority}</span>` : '';
     const tagsHtml = (note.tags || []).map(t => `<span class="sticky-tag-pill">#${escHtml(t)}</span>`).join("");
-    const summary = extractNoteSummary(note.content);
+    const preview = renderNotePreviewHtml(note.content);
 
     let reminderHtml = "";
     if (note.reminder) {
@@ -440,6 +600,12 @@ function renderListView(container, notes) {
       `;
     }
 
+    const metaPills = [];
+    if (preview.hasCode) metaPills.push('<span class="sticky-meta-pill sticky-meta-code">&lt;/&gt; code</span>');
+    if (preview.hasTable) metaPills.push('<span class="sticky-meta-pill sticky-meta-table">table</span>');
+    if (preview.hasImage) metaPills.push('<span class="sticky-meta-pill sticky-meta-image">image</span>');
+    if (preview.hasLinks) metaPills.push('<span class="sticky-meta-pill sticky-meta-links">links</span>');
+
     return `
       <div class="sticky-card" style="cursor:pointer;min-height:auto" onclick="openNoteViewModal('${note.id}')">
         <div class="sticky-card-header">
@@ -450,8 +616,8 @@ function renderListView(container, notes) {
           </div>
         </div>
 
-        <div class="sticky-card-body" style="margin-bottom:8px">
-          ${summary.text ? escHtml(summary.text) : '<span style="color:var(--muted);font-style:italic">empty note...</span>'}
+        <div class="sticky-card-body notes-list-body ${preview.isEmpty ? 'empty' : ''}">
+          ${preview.html}
         </div>
 
         <div class="sticky-card-footer">
@@ -459,6 +625,7 @@ function renderListView(container, notes) {
             ${prioBadge}
             ${tagsHtml}
             ${reminderHtml}
+            ${metaPills.join("")}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
             <button type="button" class="hr-btn" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')">
@@ -475,7 +642,6 @@ function renderListView(container, notes) {
   container.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">${html}</div>`;
 }
 
-/* ── 6. MINIMALIST MODAL EDITOR ── */
 /* ── 6. READ-ONLY NOTE VIEW MODAL ── */
 function openNoteViewModal(noteId) {
   const notes = getNormalizedGlobalNotes();
@@ -502,10 +668,11 @@ function openNoteViewModal(noteId) {
   }
 
   const tagsHtml = (note.tags || []).map(t => `<span class="sticky-tag-pill">#${escHtml(t)}</span>`).join("");
+  const formattedContent = sanitizeAndFormatNoteContent(note.content);
 
   const modalHtml = `
     <div class="clean-modal-overlay" id="note-view-modal" onclick="closeNoteViewModalOnBackdrop(event)">
-      <div class="clean-modal-card" style="max-width:740px" onclick="event.stopPropagation()">
+      <div class="clean-modal-card" style="max-width:760px" onclick="event.stopPropagation()">
         <!-- Header -->
         <div class="clean-modal-header" style="padding-bottom:12px;border-bottom:1px solid var(--line)">
           <div style="display:flex;align-items:center;gap:8px">
@@ -539,7 +706,7 @@ function openNoteViewModal(noteId) {
 
         <!-- Note Content (Read-Only) -->
         <div class="note-view-body">
-          ${note.content && note.content.trim() ? note.content : '<div style="color:var(--muted);font-style:italic">This note is empty. Click Edit Note to add content.</div>'}
+          ${formattedContent ? formattedContent : '<div style="color:var(--muted);font-style:italic">This note is empty. Click Edit Note to add content.</div>'}
         </div>
 
         <!-- Footer -->
