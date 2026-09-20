@@ -235,7 +235,13 @@ function _refreshCurrentViews() {
   } else if (id === "view-hr" && typeof buildHRView === "function") {
     buildHRView();
   } else if (id === "view-aptitude" && typeof buildAptitudeView === "function") {
-    buildAptitudeView();
+    if (typeof currentAptitudeTab !== "undefined") {
+      if (currentAptitudeTab !== "session") {
+        buildAptitudeView(currentAptitudeTab, typeof currentAptitudeParam !== "undefined" ? currentAptitudeParam : null);
+      }
+    } else {
+      buildAptitudeView();
+    }
   } else if (id === "view-cs" && typeof buildCSView === "function") {
     buildCSView();
   } else if (id === "view-systemdesign" && typeof buildSystemDesignView === "function") {

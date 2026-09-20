@@ -154,14 +154,19 @@ function cycleTopicStatus(topicTitle, event) {
   setAptitudeTopicStatus(topicTitle, next);
 }
 
+let currentAptitudeTab = "dashboard";
+let currentAptitudeParam = null;
 let currentPracticeTopicId = 1;
+let currentHandbookTopicId = 1;
 let shuffledBankSeed = null;
 
 /* ── Main View Entry Point ── */
-function buildAptitudeView(tab = "dashboard", param = null) {
+function buildAptitudeView(tab = null, param = null) {
   const container = document.getElementById("aptitude-view-inner");
   if (!container) return;
 
+  if (!tab) tab = currentAptitudeTab || "dashboard";
+  if (param !== null) currentAptitudeParam = param;
   currentAptitudeTab = tab;
 
   container.innerHTML = `
@@ -264,7 +269,7 @@ function renderAptitudeDashboard() {
   // Render Filters Toolbar
   if (filtersEl) {
     filtersEl.innerHTML = `
-      <input type="text" class="apt-search-input" id="apt-topic-search" placeholder="Filter topics (e.g. Percentage, Profit)..." oninput="filterTopicCards()">
+      <input type="text" class="apt-search-input" id="apt-topic-search" placeholder="Search topics, formulas, or category..." oninput="filterTopicCards()">
       <select class="apt-select" id="apt-status-filter" onchange="filterTopicCards()">
         <option value="all">All Statuses</option>
         <option value="not started">Not Started</option>
@@ -295,8 +300,10 @@ function renderAptitudeDashboard() {
     const status = topicStatuses[topicTitle] || "not started";
     const statusClass = status.replace(/\s+/g, "-");
 
+    const keywords = (t.methods || []).concat(t.tipsAndTricks || []).join(" ").toLowerCase();
+
     return `
-      <div class="apt-pattern-card" onclick="buildAptitudeView('practice', ${t.id})" data-title="${escHtml(topicTitle.toLowerCase())}" data-status="${escHtml(status)}">
+      <div class="apt-pattern-card" onclick="buildAptitudeView('practice', ${t.id})" data-title="${escHtml(topicTitle.toLowerCase())}" data-category="${escHtml((t.category || 'Quantitative').toLowerCase())}" data-keywords="${escHtml(keywords)}" data-status="${escHtml(status)}">
         <div>
           <div class="apt-pattern-card-top">
             <div class="apt-pattern-card-name">${escHtml(topicTitle)}</div>
@@ -337,6 +344,7 @@ function renderAptitudePractice(topicId = 1) {
   if (!content) return;
 
   currentPracticeTopicId = topicId;
+  currentAptitudeParam = topicId;
   const topicsList = (typeof APTITUDE_HANDBOOK !== "undefined") ? APTITUDE_HANDBOOK : [];
   const topic = topicsList.find(t => t.id === topicId) || topicsList[0];
   if (!topic) return;
@@ -384,7 +392,7 @@ function renderAptitudePractice(topicId = 1) {
     const isAct = t.id === topic.id;
 
     return `
-      <div class="apt-practice-nav-item ${isAct ? 'active' : ''}" onclick="renderAptitudePractice(${t.id})">
+      <div class="apt-practice-nav-item ${isAct ? 'active' : ''}" onclick="renderAptitudePractice(${t.id})" data-nav-title="${escHtml(t.title.toLowerCase())}">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.title)}</span>
         <span style="font-family:var(--mono);font-size:10px;color:${isAct ? 'var(--apt-pastel)' : 'var(--muted)'};flex-shrink:0">${tAtt}/${tQs.length}</span>
       </div>
@@ -470,8 +478,13 @@ function renderAptitudePractice(topicId = 1) {
     <div class="apt-practice-layout">
       <!-- Left sidebar with all 45 topics -->
       <div class="apt-practice-nav">
-        <div style="padding:4px 14px 8px;font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--muted)">45 Practice Domains</div>
-        ${navItems}
+        <div style="padding:4px 14px 6px;font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--muted)">45 Practice Domains</div>
+        <div style="padding:0 10px 8px">
+          <input type="text" class="apt-search-input" id="apt-practice-topic-search" placeholder="Filter 45 topics..." oninput="filterPracticeTopicList(this.value)" style="width:100%;box-sizing:border-box;font-size:11px;padding:4px 8px">
+        </div>
+        <div id="apt-practice-nav-items-list">
+          ${navItems}
+        </div>
       </div>
 
       <!-- Right main area with topic questions -->
@@ -510,6 +523,14 @@ function renderAptitudePractice(topicId = 1) {
       </div>
     </div>
   `;
+}
+
+function filterPracticeTopicList(query) {
+  const q = (query || "").toLowerCase().trim();
+  document.querySelectorAll("#apt-practice-nav-items-list .apt-practice-nav-item").forEach(item => {
+    const text = (item.getAttribute("data-nav-title") || item.textContent).toLowerCase();
+    item.style.display = (!q || text.includes(q)) ? "flex" : "none";
+  });
 }
 
 function filterPracticeTopicQuestions() {
@@ -616,15 +637,38 @@ function openTopicActionModal(topicId, topicTitle) {
 function filterTopicCards() {
   const query = (document.getElementById("apt-topic-search")?.value || "").toLowerCase().trim();
   const status = document.getElementById("apt-status-filter")?.value || "all";
-  const cards = document.querySelectorAll(".apt-pattern-card, .apt-topic-card");
+  const cards = document.querySelectorAll("#apt-topic-grid-container .apt-pattern-card, .apt-topic-card");
+  let visibleCount = 0;
 
   cards.forEach(c => {
-    const title = c.getAttribute("data-title") || "";
+    const title = (c.getAttribute("data-title") || "").toLowerCase();
+    const cat = (c.getAttribute("data-category") || "").toLowerCase();
+    const keywords = (c.getAttribute("data-keywords") || "").toLowerCase();
     const cardStatus = c.getAttribute("data-status") || "";
-    const matchesQuery = !query || title.includes(query);
+
+    const matchesQuery = !query || title.includes(query) || cat.includes(query) || keywords.includes(query);
     const matchesStatus = (status === "all") || (cardStatus === status);
-    c.style.display = (matchesQuery && matchesStatus) ? "flex" : "none";
+
+    const show = matchesQuery && matchesStatus;
+    c.style.display = show ? "flex" : "none";
+    if (show) visibleCount++;
   });
+
+  let noMsg = document.getElementById("apt-no-topics-msg");
+  if (visibleCount === 0) {
+    if (!noMsg) {
+      const container = document.getElementById("apt-topic-grid-container");
+      if (container) {
+        const div = document.createElement("div");
+        div.id = "apt-no-topics-msg";
+        div.style.cssText = "grid-column:1/-1;padding:48px 20px;text-align:center;color:var(--muted);background:var(--bg2);border:1px dashed var(--line);border-radius:var(--radius)";
+        div.innerHTML = `<div style="font-size:13px;color:var(--text);margin-bottom:4px">No aptitude topics found matching "${escHtml(query)}"</div><div style="font-size:11.5px;color:var(--muted)">Try searching for percentage, profit, ratio, time, geometry, etc.</div>`;
+        container.appendChild(div);
+      }
+    }
+  } else {
+    noMsg?.remove();
+  }
 }
 
 /* ================================================================
@@ -1033,21 +1077,29 @@ function renderAptitudeHandbook(topicId = 1) {
   if (!content) return;
 
   currentHandbookTopicId = topicId;
+  currentAptitudeParam = topicId;
   const topicsList = (typeof APTITUDE_HANDBOOK !== "undefined") ? APTITUDE_HANDBOOK : [];
   const topic = topicsList.find(t => t.id === topicId) || topicsList[0];
   if (!topic) return;
 
-  if (filtersEl) filtersEl.innerHTML = "";
+  if (filtersEl) {
+    filtersEl.innerHTML = `
+      <input type="text" class="apt-search-input" id="apt-handbook-search-top" placeholder="Search handbook formulas &amp; topics..." oninput="filterHandbookTopicList(this.value)">
+    `;
+  }
 
   const notesDB = DB.get("aptitude_notes") || {};
   const topicNote = notesDB[topic.id] || "";
 
   // Left sidebar nav items
-  const navItems = topicsList.map(t => `
-    <div class="apt-handbook-nav-item ${t.id === topic.id ? 'active' : ''}" onclick="renderAptitudeHandbook(${t.id})">
-      ${escHtml(t.title)}
-    </div>
-  `).join("");
+  const navItems = topicsList.map(t => {
+    const keywords = (t.methods || []).concat(t.tipsAndTricks || []).concat(t.coreFormulas || []).join(" ").toLowerCase();
+    return `
+      <div class="apt-handbook-nav-item ${t.id === topic.id ? 'active' : ''}" onclick="renderAptitudeHandbook(${t.id})" data-nav-title="${escHtml(t.title.toLowerCase())}" data-keywords="${escHtml(keywords)}">
+        ${escHtml(t.title)}
+      </div>
+    `;
+  }).join("");
 
   // Formulas list
   const formulasHtml = (topic.coreFormulas || []).map(f => {
@@ -1081,8 +1133,13 @@ function renderAptitudeHandbook(topicId = 1) {
     <div class="apt-handbook-layout">
       <!-- Topic list sidebar -->
       <div class="apt-handbook-nav">
-        <div style="padding:4px 16px 8px;font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--muted)">45 Core Topics</div>
-        ${navItems}
+        <div style="padding:4px 14px 6px;font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--muted)">45 Core Topics</div>
+        <div style="padding:0 10px 8px">
+          <input type="text" class="apt-search-input" id="apt-handbook-search" placeholder="Filter 45 topics..." oninput="filterHandbookTopicList(this.value)" style="width:100%;box-sizing:border-box;font-size:11px;padding:4px 8px">
+        </div>
+        <div id="apt-handbook-nav-items-list">
+          ${navItems}
+        </div>
       </div>
 
       <!-- Main Topic Content -->
@@ -1139,6 +1196,21 @@ function renderAptitudeHandbook(topicId = 1) {
       </div>
     </div>
   `;
+}
+
+function filterHandbookTopicList(query) {
+  const q = (query || "").toLowerCase().trim();
+  const topInput = document.getElementById("apt-handbook-search-top");
+  const sideInput = document.getElementById("apt-handbook-search");
+  if (topInput && topInput.value !== query) topInput.value = query;
+  if (sideInput && sideInput.value !== query) sideInput.value = query;
+
+  document.querySelectorAll("#apt-handbook-nav-items-list .apt-handbook-nav-item").forEach(item => {
+    const title = (item.getAttribute("data-nav-title") || item.textContent).toLowerCase();
+    const keywords = (item.getAttribute("data-keywords") || "").toLowerCase();
+    const match = !q || title.includes(q) || keywords.includes(q);
+    item.style.display = match ? "block" : "none";
+  });
 }
 
 let noteSaveTimeout = null;

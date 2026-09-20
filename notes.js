@@ -326,7 +326,7 @@ function buildStickyCardHtml(note) {
   if (summary.hasLinks) metaPills.push('<span class="sticky-meta-pill sticky-meta-links">links</span>');
 
   return `
-    <div class="sticky-card" id="sticky-${note.id}" data-id="${note.id}" draggable="true" onclick="openNoteEditorModal('${note.id}')">
+    <div class="sticky-card" id="sticky-${note.id}" data-id="${note.id}" draggable="true" onclick="openNoteViewModal('${note.id}')">
       <div>
         <div class="sticky-card-header">
           <div class="sticky-card-title">${escHtml(note.title) || '<span style="color:var(--muted);font-style:italic">untitled note</span>'}</div>
@@ -351,7 +351,7 @@ function buildStickyCardHtml(note) {
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${d}</span>
           <div class="sticky-card-actions">
-            <button type="button" class="sticky-action-icon" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')" title="Edit">
+            <button type="button" class="sticky-action-icon" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')" title="Edit Note">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             </button>
             <button type="button" class="sticky-action-icon delete" onclick="event.stopPropagation();deleteNoteById('${note.id}')" title="Delete">
@@ -441,7 +441,7 @@ function renderListView(container, notes) {
     }
 
     return `
-      <div class="sticky-card" style="cursor:pointer;min-height:auto" onclick="openNoteEditorModal('${note.id}')">
+      <div class="sticky-card" style="cursor:pointer;min-height:auto" onclick="openNoteViewModal('${note.id}')">
         <div class="sticky-card-header">
           <div class="sticky-card-title" style="font-size:14.5px">${escHtml(note.title) || '<span style="color:var(--muted);font-style:italic">untitled note</span>'}</div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -461,7 +461,10 @@ function renderListView(container, notes) {
             ${reminderHtml}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
-            <button type="button" class="hr-btn" style="padding:2px 6px;font-size:11px" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')">edit</button>
+            <button type="button" class="hr-btn" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>edit</span>
+            </button>
             <button type="button" class="hr-btn" style="padding:2px 6px;font-size:11px;color:var(--hard-text)" onclick="event.stopPropagation();deleteNoteById('${note.id}')">delete</button>
           </div>
         </div>
@@ -472,8 +475,103 @@ function renderListView(container, notes) {
   container.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">${html}</div>`;
 }
 
-/* ── 6. MINIMALIST MODAL EDITOR ── */
+/* ── 6. READ-ONLY NOTE VIEW MODAL ── */
+function openNoteViewModal(noteId) {
+  const notes = getNormalizedGlobalNotes();
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+
+  const dCreated = new Date(note.created || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const dUpdated = new Date(note.updated || note.created || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const prioClass = note.priority && note.priority !== "none" ? "sticky-prio-" + note.priority : "";
+
+  let reminderHtml = "";
+  if (note.reminder) {
+    const rem = note.reminder;
+    const isOverdue = !rem.completed && rem.date && (new Date(rem.date + "T" + (rem.time || "23:59")) < new Date());
+    const isToday = !rem.completed && rem.date === new Date().toISOString().slice(0, 10);
+    const remClass = rem.completed ? "completed" : (isOverdue ? "overdue" : (isToday ? "today" : ""));
+
+    reminderHtml = `
+      <div class="sticky-reminder-pill ${remClass}" style="cursor:default">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>Reminder: ${rem.date || ''} ${rem.time || ''} ${rem.completed ? '(Completed)' : ''}</span>
+      </div>
+    `;
+  }
+
+  const tagsHtml = (note.tags || []).map(t => `<span class="sticky-tag-pill">#${escHtml(t)}</span>`).join("");
+
+  const modalHtml = `
+    <div class="clean-modal-overlay" id="note-view-modal" onclick="closeNoteViewModalOnBackdrop(event)">
+      <div class="clean-modal-card" style="max-width:740px" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="clean-modal-header" style="padding-bottom:12px;border-bottom:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-family:var(--serif);font-size:20px;font-weight:500;color:var(--text)">
+              ${escHtml(note.title) || '<span style="color:var(--muted);font-style:italic">untitled note</span>'}
+            </div>
+            ${note.pinned ? '<span style="color:var(--accent)" title="Pinned"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg></span>' : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button type="button" class="notes-btn-create" style="padding:4px 12px;font-size:11.5px" onclick="closeNoteViewModal();openNoteEditorModal('${note.id}')" title="Edit Note">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>Edit Note</span>
+            </button>
+            <button type="button" class="modal-close" onclick="closeNoteViewModal()" title="Close">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Meta Bar -->
+        <div class="note-view-meta-row" style="margin-top:14px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            ${note.priority && note.priority !== 'none' ? `<span class="sticky-prio-badge ${prioClass}">${note.priority}</span>` : ''}
+            ${tagsHtml}
+            ${reminderHtml}
+          </div>
+          <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted)">
+            Updated ${dUpdated}
+          </div>
+        </div>
+
+        <!-- Note Content (Read-Only) -->
+        <div class="note-view-body">
+          ${note.content && note.content.trim() ? note.content : '<div style="color:var(--muted);font-style:italic">This note is empty. Click Edit Note to add content.</div>'}
+        </div>
+
+        <!-- Footer -->
+        <div class="clean-modal-footer" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line)">
+          <button type="button" class="hr-btn" style="color:var(--hard-text);border-color:rgba(200,104,104,0.3)" onclick="deleteNoteById('${note.id}');closeNoteViewModal()">delete note</button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button type="button" class="hr-btn" onclick="closeNoteViewModal()">close</button>
+            <button type="button" class="notes-btn-create" onclick="closeNoteViewModal();openNoteEditorModal('${note.id}')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>Edit Note</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("note-view-modal")?.remove();
+  document.getElementById("note-editor-modal")?.remove();
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+}
+
+function closeNoteViewModalOnBackdrop(e) {
+  if (e.target.id === "note-view-modal") closeNoteViewModal();
+}
+
+function closeNoteViewModal() {
+  document.getElementById("note-view-modal")?.remove();
+}
+
+/* ── 7. MINIMALIST MODAL EDITOR (EDIT MODE ONLY) ── */
 function openNoteEditorModal(noteId = null) {
+  closeNoteViewModal();
   const notes = getNormalizedGlobalNotes();
   const note = noteId ? notes.find(n => n.id === noteId) : null;
 
@@ -481,7 +579,7 @@ function openNoteEditorModal(noteId = null) {
 
   const modalHtml = `
     <div class="clean-modal-overlay" id="note-editor-modal" onclick="closeNoteModalOnBackdrop(event)">
-      <div class="clean-modal-card" onclick="event.stopPropagation()">
+      <div class="clean-modal-card" style="max-width:740px" onclick="event.stopPropagation()">
         <!-- Header -->
         <div class="clean-modal-header">
           <div style="font-family:var(--serif);font-size:18px;font-weight:400;color:var(--text)">
@@ -579,7 +677,7 @@ function openNoteEditorModal(noteId = null) {
   document.getElementById("note-editor-modal")?.remove();
   document.body.insertAdjacentHTML("beforeend", modalHtml);
 
-  // Initialize Quill
+  // Initialize Quill safely
   initModalQuill(note ? note.content : "");
 }
 
@@ -588,7 +686,7 @@ function initModalQuill(initialHtml) {
   if (!container) return;
 
   if (typeof Quill === "undefined") {
-    container.innerHTML = `<textarea class="hr-answer-textarea" id="fallback-note-editor" style="min-height:220px">${initialHtml}</textarea>`;
+    container.innerHTML = `<textarea class="hr-answer-textarea" id="fallback-note-editor" style="min-height:220px;width:100%">${escHtml(initialHtml || "")}</textarea>`;
     return;
   }
 
@@ -611,8 +709,12 @@ function initModalQuill(initialHtml) {
     }
   });
 
-  if (initialHtml) {
-    activeQuillInstance.root.innerHTML = initialHtml;
+  if (initialHtml && initialHtml.trim()) {
+    try {
+      activeQuillInstance.clipboard.dangerouslyPasteHTML(0, initialHtml);
+    } catch (e) {
+      activeQuillInstance.root.innerHTML = initialHtml;
+    }
   }
 }
 
@@ -653,7 +755,9 @@ function saveNoteModal() {
     const existing = notes.find(n => n.id === id);
     if (existing) {
       existing.title = title;
-      existing.content = contentHtml;
+      if (contentHtml !== "" || !existing.content) {
+        existing.content = contentHtml;
+      }
       existing.pinned = pinned;
       existing.priority = priority;
       existing.tags = tags;
@@ -755,7 +859,7 @@ function renderDashboardRemindersWidget() {
   if (!reminders.length) return "";
 
   const html = reminders.slice(0, 5).map(r => {
-    const isOverdue = !r.completed && r.date && (new Date(r.date + "T" + (rem.time || "23:59")) < new Date());
+    const isOverdue = !r.completed && r.date && (new Date(r.date + "T" + (r.time || "23:59")) < new Date());
     const isToday = !r.completed && r.date === new Date().toISOString().slice(0, 10);
     const prioColor = r.priority === 'high' ? 'var(--hard-text)' : (r.priority === 'medium' ? 'var(--medium-text)' : 'var(--mid)');
 
@@ -764,7 +868,7 @@ function renderDashboardRemindersWidget() {
         <div class="dash-reminder-left">
           <input type="checkbox" class="dash-reminder-checkbox" ${r.completed ? 'checked' : ''} onchange="toggleNoteReminderStatus('${r.noteId}')">
           <div>
-            <div class="dash-reminder-text ${r.completed ? 'done' : ''}" style="cursor:pointer" onclick="showView('notes');setTimeout(()=>openNoteEditorModal('${r.noteId}'), 100)">
+            <div class="dash-reminder-text ${r.completed ? 'done' : ''}" style="cursor:pointer" onclick="showView('notes');setTimeout(()=>openNoteViewModal('${r.noteId}'), 100)">
               ${escHtml(r.title)}
             </div>
             <div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:2px">
