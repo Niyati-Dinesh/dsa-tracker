@@ -507,7 +507,7 @@ function renderAptitudePractice(topicId = 1) {
                 ${escHtml(topic.category || "Quantitative Aptitude")} · <span id="apt-practice-topic-stats">${topicQs.length} total questions · ${attempted} attempted · ${acc}% accuracy</span>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <button class="apt-btn apt-btn-primary" onclick="startSingleTopicPractice('${escHtml(topic.title)}')">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 <span>Start Timed Mock</span>
@@ -515,6 +515,10 @@ function renderAptitudePractice(topicId = 1) {
               <button class="apt-btn" onclick="buildAptitudeView('handbook', ${topic.id})">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                 <span>Formulas</span>
+              </button>
+              <button class="apt-btn" onclick="resetTopicQuestions('${escHtml(topic.title)}', ${topic.id})" title="Unselect all options and reset all questions for this topic">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <span>Reset All</span>
               </button>
               <div class="apt-status-pill ${currentStatus.replace(/\s+/g, '-')}" onclick="cycleTopicStatus('${escHtml(topic.title)}', event)" title="Click to cycle status">
                 <span>●</span> <span>${currentStatus}</span>
@@ -608,7 +612,7 @@ function openTopicActionModal(topicId, topicTitle) {
           ${allQs.length} practice questions · ${attempted} attempted · ${acc}% accuracy
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
           <button class="apt-btn apt-btn-primary" style="justify-content:center;padding:10px;font-size:12.5px" onclick="closeAptModalDirect('apt-topic-action-modal'); startSingleTopicPractice('${escHtml(topicTitle)}')">
             <span>Start Practice (${allQs.length} Qs)</span>
           </button>
@@ -617,6 +621,14 @@ function openTopicActionModal(topicId, topicTitle) {
             <span>Formulas Handbook</span>
           </button>
         </div>
+
+        ${attempted > 0 ? `
+          <div style="margin-bottom:14px;display:flex;justify-content:flex-end">
+            <button class="apt-link-btn" style="color:var(--hard-text);font-size:11px" onclick="resetTopicQuestions('${escHtml(topicTitle)}', ${topicId}); closeAptModalDirect('apt-topic-action-modal');">
+              Reset Topic Attempts (${attempted} solved)
+            </button>
+          </div>
+        ` : ''}
 
         <div style="margin-bottom:18px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -1616,6 +1628,64 @@ function updateAptitudeTopicStatsUi(topicTitle) {
     if (navPill) {
       navPill.textContent = `${attempted}/${topicQs.length}`;
     }
+  }
+}
+
+function resetTopicQuestions(topicTitle, topicId = null) {
+  const allQs = getAllAptitudeQuestions();
+  const topicQs = allQs.filter(q => q.topic === topicTitle || q.topic === topicTitle.replace(/^[0-9]+\.\s*/, ""));
+  if (!topicQs.length) return;
+
+  const results = getAptitudeResults();
+  const attemptedCount = topicQs.filter(q => results[q.id]).length;
+
+  if (attemptedCount === 0) {
+    if (typeof showAlert === "function") showAlert(`No questions have been answered yet for "${topicTitle}".`);
+    return;
+  }
+
+  const doReset = () => {
+    topicQs.forEach(q => {
+      // Remove option highlights
+      (q.options || []).forEach((_, idx) => {
+        const el = document.getElementById(`apt-inline-opt-${q.id}-${idx}`);
+        if (el) el.classList.remove("selected", "correct", "wrong");
+      });
+
+      // Hide explanation
+      const expEl = document.getElementById(`apt-inline-exp-${q.id}`);
+      const toggleBtn = document.getElementById(`apt-exp-toggle-${q.id}`);
+      if (expEl) expEl.style.display = "none";
+      if (toggleBtn) toggleBtn.textContent = "Show Explanation";
+
+      // Reset status badge
+      const statusEl = document.getElementById(`apt-inline-status-${q.id}`);
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:var(--muted)">Unattempted</span>';
+      }
+
+      // Reset card attribute
+      const card = document.getElementById(`apt-mcq-card-${q.id}`);
+      if (card) card.setAttribute("data-status", "unattempted");
+
+      // Delete from results
+      delete results[q.id];
+    });
+
+    DB.set("aptitude", results);
+    if (typeof syncAfterChange === "function") syncAfterChange();
+
+    updateAptitudeTopicStatsUi(topicTitle);
+
+    if (typeof filterPracticeTopicQuestions === "function") {
+      filterPracticeTopicQuestions();
+    }
+  };
+
+  if (typeof showConfirm === "function") {
+    showConfirm(`Reset all ${attemptedCount} attempted questions in "${topicTitle}"? All selected options will be unselected and removed from solved.`, doReset);
+  } else {
+    doReset();
   }
 }
 
