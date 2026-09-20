@@ -391,7 +391,7 @@ function renderAptitudePractice(topicId = 1) {
     return `
       <div class="apt-practice-nav-item ${isAct ? 'active' : ''}" onclick="renderAptitudePractice(${t.id})" data-nav-title="${escHtml(t.title.toLowerCase())}">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.title)}</span>
-        <span style="font-family:var(--mono);font-size:10px;color:${isAct ? 'var(--apt-pastel)' : 'var(--muted)'};flex-shrink:0">${tAtt}/${tQs.length}</span>
+        <span class="apt-nav-count-pill" id="apt-nav-count-${t.id}" style="font-family:var(--mono);font-size:10px;color:${isAct ? 'var(--apt-pastel)' : 'var(--muted)'};flex-shrink:0">${tAtt}/${tQs.length}</span>
       </div>
     `;
   }).join("");
@@ -503,7 +503,9 @@ function renderAptitudePractice(topicId = 1) {
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
             <div>
               <div style="font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text)">${escHtml(topic.title)}</div>
-              <div style="font-size:12px;color:var(--mid);margin-top:2px">${escHtml(topic.category || "Quantitative Aptitude")} · ${topicQs.length} total questions · ${attempted} attempted · ${acc}% accuracy</div>
+              <div style="font-size:12px;color:var(--mid);margin-top:2px">
+                ${escHtml(topic.category || "Quantitative Aptitude")} · <span id="apt-practice-topic-stats">${topicQs.length} total questions · ${attempted} attempted · ${acc}% accuracy</span>
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <button class="apt-btn apt-btn-primary" onclick="startSingleTopicPractice('${escHtml(topic.title)}')">
@@ -521,7 +523,7 @@ function renderAptitudePractice(topicId = 1) {
           </div>
 
           <div class="apt-pattern-bar-bg" style="height:4px;margin-top:8px">
-            <div class="apt-pattern-bar-fill ${prog === 100 ? 'full' : ''}" style="width:${prog}%"></div>
+            <div class="apt-pattern-bar-fill ${prog === 100 ? 'full' : ''}" id="apt-practice-prog-fill" style="width:${prog}%"></div>
           </div>
         </div>
 
@@ -915,6 +917,11 @@ let selectedOptionIndex = null;
 
 function selectAptOption(index) {
   if (currentAptitudeSession && currentAptitudeSession.isSubmitted) return;
+  if (selectedOptionIndex === index) {
+    selectedOptionIndex = null;
+    document.querySelectorAll(".apt-option-row").forEach(el => el.classList.remove("selected"));
+    return;
+  }
   selectedOptionIndex = index;
   document.querySelectorAll(".apt-option-row").forEach((el, idx) => {
     el.classList.toggle("selected", idx === index);
@@ -1464,8 +1471,25 @@ function selectInlineOption(questionId, selectedIdx) {
   const q = allQs.find(item => item.id === questionId);
   if (!q || !q.options) return;
 
+  const results = getAptitudeResults();
+  const currentRes = results[q.id];
   const selectedText = q.options[selectedIdx];
   const isCorrect = (selectedText.toString().trim() === q.correct_answer.toString().trim());
+
+  // Check if clicked option is already active -> UNSELECT and remove from solved/attempted
+  const prevSelectedIdx = currentRes?.selectedOptionIndex !== undefined ? currentRes.selectedOptionIndex : -1;
+  const prevSelectedText = currentRes?.selectedAnswer || currentRes?.attempts?.[currentRes.attempts.length - 1]?.selected;
+  
+  const isOptionAlreadyActive = currentRes && (
+    (prevSelectedIdx === selectedIdx) ||
+    (prevSelectedIdx === -1 && prevSelectedText && prevSelectedText.toString().trim() === selectedText.toString().trim()) ||
+    (currentRes.status === "correct" && isCorrect && prevSelectedIdx === -1)
+  );
+
+  if (isOptionAlreadyActive) {
+    resetInlineQuestion(questionId);
+    return;
+  }
 
   // Highlight options
   q.options.forEach((opt, idx) => {
@@ -1497,7 +1521,6 @@ function selectInlineOption(questionId, selectedIdx) {
   if (card) card.setAttribute("data-status", isCorrect ? "correct" : "wrong");
 
   // Save to DB
-  const results = getAptitudeResults();
   if (!results[q.id]) results[q.id] = { status: isCorrect ? "correct" : "wrong", attempts: [] };
   results[q.id].status = isCorrect ? "correct" : "wrong";
   results[q.id].selectedAnswer = selectedText;
@@ -1513,6 +1536,9 @@ function selectInlineOption(questionId, selectedIdx) {
   results[q.id].lastAttempt = Date.now();
   DB.set("aptitude", results);
   if (typeof syncAfterChange === "function") syncAfterChange();
+
+  // Update topic progress & counters if in practice view
+  if (q.topic) updateAptitudeTopicStatsUi(q.topic);
 }
 
 function toggleInlineExplanation(questionId) {
@@ -1552,6 +1578,44 @@ function resetInlineQuestion(questionId) {
     delete results[questionId];
     DB.set("aptitude", results);
     if (typeof syncAfterChange === "function") syncAfterChange();
+  }
+
+  // Update topic progress & counters if in practice view
+  if (q.topic) updateAptitudeTopicStatsUi(q.topic);
+}
+
+function updateAptitudeTopicStatsUi(topicTitle) {
+  if (!topicTitle) return;
+  const allQs = getAllAptitudeQuestions();
+  const topicQs = allQs.filter(q => q.topic === topicTitle || q.topic === topicTitle.replace(/^[0-9]+\.\s*/, ""));
+  const results = getAptitudeResults();
+  let attempted = 0, correct = 0;
+  topicQs.forEach(q => {
+    if (results[q.id]) {
+      attempted++;
+      if (results[q.id].status === "correct") correct++;
+    }
+  });
+  const acc = attempted ? Math.round((correct / attempted) * 100) : 0;
+  const prog = topicQs.length ? Math.round((attempted / topicQs.length) * 100) : 0;
+
+  const statsEl = document.getElementById("apt-practice-topic-stats");
+  if (statsEl) {
+    statsEl.textContent = `${topicQs.length} total questions · ${attempted} attempted · ${acc}% accuracy`;
+  }
+  const progEl = document.getElementById("apt-practice-prog-fill");
+  if (progEl) {
+    progEl.style.width = `${prog}%`;
+    progEl.classList.toggle("full", prog === 100);
+  }
+
+  const topicsList = (typeof APTITUDE_HANDBOOK !== "undefined") ? APTITUDE_HANDBOOK : [];
+  const topicObj = topicsList.find(t => t.title === topicTitle || t.title === topicTitle.replace(/^[0-9]+\.\s*/, ""));
+  if (topicObj) {
+    const navPill = document.getElementById(`apt-nav-count-${topicObj.id}`);
+    if (navPill) {
+      navPill.textContent = `${attempted}/${topicQs.length}`;
+    }
   }
 }
 
