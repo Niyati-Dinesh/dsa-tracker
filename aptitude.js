@@ -8,8 +8,11 @@
  */
 
 let currentAptitudeTab = "dashboard";
+let currentAptitudeParam = null;
 let currentAptitudeSession = null;
+let currentPracticeTopicId = 1;
 let currentHandbookTopicId = 1;
+let shuffledBankSeed = null;
 
 /* ── KaTeX Math Formatter Helper ── */
 function preprocessAptMath(math) {
@@ -153,12 +156,6 @@ function cycleTopicStatus(topicTitle, event) {
   const next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
   setAptitudeTopicStatus(topicTitle, next);
 }
-
-let currentAptitudeTab = "dashboard";
-let currentAptitudeParam = null;
-let currentPracticeTopicId = 1;
-let currentHandbookTopicId = 1;
-let shuffledBankSeed = null;
 
 /* ── Main View Entry Point ── */
 function buildAptitudeView(tab = null, param = null) {

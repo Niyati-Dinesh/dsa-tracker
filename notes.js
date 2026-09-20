@@ -326,6 +326,7 @@ function buildStickyCardHtml(note) {
   if (summary.hasLinks) metaPills.push('<span class="sticky-meta-pill sticky-meta-links">links</span>');
 
   return `
+    <div class="sticky-card" id="sticky-${note.id}" data-id="${note.id}" draggable="true" onclick="openNoteEditorModal('${note.id}')">
     <div class="sticky-card" id="sticky-${note.id}" data-id="${note.id}" draggable="true" onclick="openNoteViewModal('${note.id}')">
       <div>
         <div class="sticky-card-header">
@@ -351,6 +352,7 @@ function buildStickyCardHtml(note) {
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${d}</span>
           <div class="sticky-card-actions">
+            <button type="button" class="sticky-action-icon" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')" title="Edit">
             <button type="button" class="sticky-action-icon" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')" title="Edit Note">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             </button>
@@ -441,6 +443,7 @@ function renderListView(container, notes) {
     }
 
     return `
+      <div class="sticky-card" style="cursor:pointer;min-height:auto" onclick="openNoteEditorModal('${note.id}')">
       <div class="sticky-card" style="cursor:pointer;min-height:auto" onclick="openNoteViewModal('${note.id}')">
         <div class="sticky-card-header">
           <div class="sticky-card-title" style="font-size:14.5px">${escHtml(note.title) || '<span style="color:var(--muted);font-style:italic">untitled note</span>'}</div>
@@ -461,6 +464,7 @@ function renderListView(container, notes) {
             ${reminderHtml}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" class="hr-btn" style="padding:2px 6px;font-size:11px" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')">edit</button>
             <button type="button" class="hr-btn" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();openNoteEditorModal('${note.id}')">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
               <span>edit</span>
@@ -475,6 +479,7 @@ function renderListView(container, notes) {
   container.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px">${html}</div>`;
 }
 
+/* ── 6. MINIMALIST MODAL EDITOR ── */
 /* ── 6. READ-ONLY NOTE VIEW MODAL ── */
 function openNoteViewModal(noteId) {
   const notes = getNormalizedGlobalNotes();
@@ -579,6 +584,7 @@ function openNoteEditorModal(noteId = null) {
 
   const modalHtml = `
     <div class="clean-modal-overlay" id="note-editor-modal" onclick="closeNoteModalOnBackdrop(event)">
+      <div class="clean-modal-card" onclick="event.stopPropagation()">
       <div class="clean-modal-card" style="max-width:740px" onclick="event.stopPropagation()">
         <!-- Header -->
         <div class="clean-modal-header">
@@ -677,6 +683,7 @@ function openNoteEditorModal(noteId = null) {
   document.getElementById("note-editor-modal")?.remove();
   document.body.insertAdjacentHTML("beforeend", modalHtml);
 
+  // Initialize Quill
   // Initialize Quill safely
   initModalQuill(note ? note.content : "");
 }
@@ -755,6 +762,7 @@ function saveNoteModal() {
     const existing = notes.find(n => n.id === id);
     if (existing) {
       existing.title = title;
+      existing.content = contentHtml;
       if (contentHtml !== "" || !existing.content) {
         existing.content = contentHtml;
       }
